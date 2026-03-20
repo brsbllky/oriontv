@@ -587,6 +587,15 @@ html, body {
 .add-panel { display:none; }
 .add-panel.active { display:block; }
 
+.xtream-info-box {
+  display:flex; align-items:flex-start; gap:10px;
+  padding:12px 14px; border-radius:14px; margin-bottom:14px;
+  background:rgba(0,200,255,0.08); border:1px solid rgba(0,200,255,0.2);
+  font-size:13px; color:var(--text-2); line-height:1.5;
+}
+.xtream-info-box b { color:var(--text); }
+.xtream-info-icon { font-size:16px; flex-shrink:0; margin-top:1px; }
+
 /* ── TOAST ── */
   position:fixed; bottom:calc(116px + var(--sab)); left:50%;
   transform:translateX(-50%) translateY(16px) scale(0.95);
@@ -715,27 +724,34 @@ html, body {
 
       <!-- Xtream Codes Panel -->
       <div class="add-panel" id="panel-xtream">
+        <div class="xtream-info-box">
+          <span class="xtream-info-icon">💡</span>
+          <span>Servis sağlayıcından aldığın <b>sunucu, kullanıcı adı ve şifre</b> bilgilerini gir.</span>
+        </div>
         <div class="xtream-field">
-          <span class="xtream-label">Sunucu URL</span>
-          <input class="xtream-input" id="xt-host" type="url" placeholder="http://sunucu.com:8080">
+          <span class="xtream-label">Sunucu Adresi</span>
+          <input class="xtream-input" id="xt-host" type="url" placeholder="http://sunucu.com:8080" autocorrect="off" autocapitalize="none" spellcheck="false">
         </div>
         <div class="xtream-field">
           <span class="xtream-label">Kullanıcı Adı</span>
-          <input class="xtream-input" id="xt-user" type="text" placeholder="kullanici_adi">
+          <input class="xtream-input" id="xt-user" type="text" placeholder="kullanici_adi" autocorrect="off" autocapitalize="none" spellcheck="false">
         </div>
         <div class="xtream-field">
           <span class="xtream-label">Şifre</span>
-          <input class="xtream-input" id="xt-pass" type="password" placeholder="••••••••">
-        </div>
-        <div style="margin-bottom:12px;">
-          <span class="xtream-label">İçerik Türü</span>
-          <div class="xtream-type-row">
-            <div class="xtream-type-btn active" onclick="selectXtType('live',this)">📺 Canlı</div>
-            <div class="xtream-type-btn" onclick="selectXtType('vod',this)">🎬 VOD</div>
-            <div class="xtream-type-btn" onclick="selectXtType('series',this)">📺 Dizi</div>
+          <div style="position:relative;">
+            <input class="xtream-input" id="xt-pass" type="password" placeholder="••••••••" autocorrect="off" autocapitalize="none" spellcheck="false" style="padding-right:48px;">
+            <button onclick="togglePassVis()" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-3);cursor:pointer;font-size:18px;" id="pass-eye">👁</button>
           </div>
         </div>
-        <button class="load-btn" onclick="loadXtream()">Bağlan</button>
+        <div style="margin-bottom:14px;">
+          <span class="xtream-label">İçerik Türü</span>
+          <div class="xtream-type-row">
+            <div class="xtream-type-btn active" onclick="selectXtType('live',this)">📺 Canlı TV</div>
+            <div class="xtream-type-btn" onclick="selectXtType('vod',this)">🎬 Film</div>
+            <div class="xtream-type-btn" onclick="selectXtType('series',this)">🎭 Dizi</div>
+          </div>
+        </div>
+        <button class="load-btn" onclick="loadXtream()">Bağlan ve Kanalları Yükle</button>
       </div>
 
       <!-- File Panel -->
@@ -888,101 +904,207 @@ function selectXtType(type, el) {
   el.classList.add('active');
 }
 
-/* ── M3U URL LOADER (multi-proxy fallback) ── */
-const PROXIES = [
-  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-  url => `https://cors-anywhere.herokuapp.com/${url}`,
-];
-
-async function tryFetch(url) {
-  // 1. Direct fetch first
-  try {
-    const r = await fetch(url, {signal: AbortSignal.timeout(8000)});
-    if (r.ok) { const t = await r.text(); if(t.includes('#EXTINF')||t.includes('#EXTM3U')) return t; }
-  } catch(e) {}
-  // 2. Try each proxy
-  for (const proxy of PROXIES) {
-    try {
-      const r = await fetch(proxy(url), {signal: AbortSignal.timeout(10000)});
-      if (r.ok) { const t = await r.text(); if(t.includes('#EXTINF')||t.includes('#EXTM3U')) return t; }
-    } catch(e) {}
-  }
-  throw new Error('Tüm proxy\'ler başarısız');
-}
+/* ══════════════════════════════════════════════
+   M3U URL LOADER
+   Strateji: URL içindeki user/pass varsa direkt
+   stream URL üret. Yoksa proxy zinciri dene.
+══════════════════════════════════════════════ */
 
 function loadFromURL() {
   const v = document.getElementById('playlist-url').value.trim();
   if (!v) { showToast('⚠️ URL veya M3U içeriği gir'); return; }
-  if (v.startsWith('#EXTM3U') || v.includes('#EXTINF')) { processM3U(v); return; }
-  if (!v.startsWith('http')) { showToast('⚠️ Geçerli bir URL gir (http...)'); return; }
+
+  // Paste olarak M3U içeriği girilmişse direkt parse et
+  if (v.startsWith('#EXTM3U') || v.includes('#EXTINF')) {
+    processM3U(v); return;
+  }
+  if (!v.startsWith('http')) { showToast('⚠️ http:// ile başlayan URL gir'); return; }
+
+  // URL içinde Xtream parametreleri var mı? (get.php?username=...)
+  try {
+    const u = new URL(v);
+    const user = u.searchParams.get('username');
+    const pass = u.searchParams.get('password');
+    if (user && pass) {
+      const host = u.origin;
+      // Xtream M3U URL — direkt olarak kaydet, fetch etme
+      document.getElementById('xt-host').value = host;
+      document.getElementById('xt-user').value = user;
+      document.getElementById('xt-pass').value = pass;
+      showToast('✅ Xtream bilgileri algılandı, bağlanıyor…');
+      setTimeout(() => loadXtream(), 300);
+      return;
+    }
+  } catch(e) {}
+
+  // Normal M3U URL — iframe trick ile dene, olmadı bilgi ver
   showToast('⏳ Yükleniyor…');
-  tryFetch(v)
+  fetchM3U(v)
     .then(t => processM3U(t))
-    .catch(() => showToast('❌ Yüklenemedi. Dosya yöntemi ile dene.'));
+    .catch(err => {
+      showToast('❌ CORS engeli. Dosya veya Xtream sekmesini dene.');
+    });
 }
 
-/* ── XTREAM CODES LOADER ── */
+/* Proxy zinciri — 4 farklı yöntem */
+async function fetchM3U(url) {
+  const proxies = [
+    () => fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`, {signal: AbortSignal.timeout(12000)}),
+    () => fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`, {signal: AbortSignal.timeout(12000)}),
+    () => fetch(`https://thingproxy.freeboard.io/fetch/${url}`, {signal: AbortSignal.timeout(12000)}),
+    () => fetch(url, {mode:'no-cors', signal: AbortSignal.timeout(8000)}),
+  ];
+
+  for (const attempt of proxies) {
+    try {
+      const r = await attempt();
+      if (!r.ok && r.type !== 'opaque') continue;
+      const t = await r.text();
+      if (t && (t.includes('#EXTINF') || t.includes('#EXTM3U'))) return t;
+    } catch(e) { /* devam */ }
+  }
+  throw new Error('CORS engeli');
+}
+
+/* ══════════════════════════════════════════════
+   XTREAM CODES — Ana yükleme motoru
+   Proxy gerektirmez: URL'i direkt oluşturur,
+   video player stream URL'ini açar.
+══════════════════════════════════════════════ */
+
 async function loadXtream() {
-  const host = document.getElementById('xt-host').value.trim().replace(/\/$/, '');
+  const host = document.getElementById('xt-host').value.trim().replace(/\/+$/, '');
   const user = document.getElementById('xt-user').value.trim();
   const pass = document.getElementById('xt-pass').value.trim();
-  if (!host || !user || !pass) { showToast('⚠️ Tüm alanları doldur'); return; }
 
-  showToast('⏳ Xtream bağlanıyor…');
+  if (!host) { showToast('⚠️ Sunucu adresi gir'); return; }
+  if (!user) { showToast('⚠️ Kullanıcı adı gir'); return; }
+  if (!pass) { showToast('⚠️ Şifre gir'); return; }
+  if (!host.startsWith('http')) { showToast('⚠️ http:// veya https:// ekle'); return; }
 
-  // Build M3U URL from Xtream API
-  const m3uUrl = `${host}/get.php?username=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}&type=m3u_plus&output=ts`;
+  updateLoadBtn('⏳ Bağlanıyor…', true);
 
-  tryFetch(m3uUrl)
-    .then(t => {
-      if (!t.includes('#EXTINF') && !t.includes('#EXTM3U')) {
-        // Try JSON API fallback
-        return loadXtreamJSON(host, user, pass);
-      }
-      processM3U(t);
-    })
-    .catch(() => loadXtreamJSON(host, user, pass));
-}
+  // Xtream API JSON endpoint — bu CORS sorun çıkarmaz çünkü
+  // aynı origin'den video stream açılır, sadece kanal listesi alınır
+  const action = { live:'get_live_streams', vod:'get_vod_streams', series:'get_series' }[xtreamType];
+  const apiUrl = `${host}/player_api.php?username=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}&action=${action}`;
 
-async function loadXtreamJSON(host, user, pass) {
-  const typeMap = { live: 'get_live_streams', vod: 'get_vod_streams', series: 'get_series' };
-  const apiUrl = `${host}/player_api.php?username=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}&action=${typeMap[xtreamType]}`;
+  // Kategori adlarını da çekelim
+  const catAction = { live:'get_live_categories', vod:'get_vod_categories', series:'get_series_categories' }[xtreamType];
+  const catUrl = `${host}/player_api.php?username=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}&action=${catAction}`;
 
   try {
-    const text = await tryFetch(apiUrl);
-    const data = JSON.parse(text);
-    if (!Array.isArray(data) || !data.length) { showToast('❌ Kanal verisi alınamadı'); return; }
+    // JSON API — genellikle CORS destekler, aynı sunucudan akış açılır
+    const [streamsResp, catsResp] = await Promise.allSettled([
+      fetchJSON(apiUrl),
+      fetchJSON(catUrl)
+    ]);
 
-    // Convert JSON to channel objects
-    const result = data.map(item => {
+    if (streamsResp.status === 'rejected') {
+      // JSON olmadı, M3U URL'i direkt oluştur ve kaydet
+      buildXtreamFromURL(host, user, pass);
+      return;
+    }
+
+    const streams = streamsResp.value;
+    const cats = catsResp.status === 'fulfilled' ? catsResp.value : [];
+
+    if (!Array.isArray(streams) || streams.length === 0) {
+      showToast('❌ Kanal bulunamadı. Bilgileri kontrol et.');
+      updateLoadBtn('Bağlan', false);
+      return;
+    }
+
+    // Kategori id→name haritası
+    const catMap = {};
+    if (Array.isArray(cats)) cats.forEach(c => { catMap[c.category_id] = c.category_name; });
+
+    const result = streams.map(item => {
+      const sid = item.stream_id || item.series_id || item.vod_id || '';
       const ext = xtreamType === 'live' ? 'ts' : 'm3u8';
-      const streamUrl = `${host}/${xtreamType}/${encodeURIComponent(user)}/${encodeURIComponent(pass)}/${item.stream_id || item.series_id}.${ext}`;
+      const streamUrl = xtreamType === 'live'
+        ? `${host}/live/${encodeURIComponent(user)}/${encodeURIComponent(pass)}/${sid}.${ext}`
+        : xtreamType === 'vod'
+        ? `${host}/movie/${encodeURIComponent(user)}/${encodeURIComponent(pass)}/${sid}.${ext}`
+        : `${host}/series/${encodeURIComponent(user)}/${encodeURIComponent(pass)}/${sid}.${ext}`;
+
+      const catName = catMap[item.category_id] || item.category_name || 'Genel';
       return {
         name: item.name || item.title || 'Bilinmiyor',
-        group: item.category_name || item.category_id || 'Genel',
-        logo: item.stream_icon || item.cover || '',
+        group: catName,
+        logo: item.stream_icon || item.cover || item.movie_image || '',
         url: streamUrl,
-        uid: btoa(encodeURIComponent((item.name||'') + streamUrl)).substring(0,20)
+        uid: btoa(encodeURIComponent(item.name + sid)).substring(0, 20)
       };
     });
 
-    channels = result; saveChannels(); filtered = channels; activeCategory = 'Tümü';
-    renderChannels(channels); renderCategories(); renderFavorites();
-    showToast(`✅ ${channels.length} kanal yüklendi`);
-    switchScreen('home', document.querySelector('[data-screen="home"]'));
+    applyChannels(result);
+    updateLoadBtn('Bağlan', false);
+
   } catch(e) {
-    showToast('❌ Xtream bağlantısı başarısız');
+    buildXtreamFromURL(host, user, pass);
   }
+}
+
+/* JSON API isteği */
+async function fetchJSON(url) {
+  const proxies = [
+    () => fetch(url, {signal: AbortSignal.timeout(12000)}),
+    () => fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`, {signal: AbortSignal.timeout(12000)}),
+    () => fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`, {signal: AbortSignal.timeout(12000)}),
+  ];
+  for (const attempt of proxies) {
+    try {
+      const r = await attempt();
+      if (!r.ok) continue;
+      const text = await r.text();
+      return JSON.parse(text);
+    } catch(e) {}
+  }
+  throw new Error('JSON alınamadı');
+}
+
+/* Fallback: Xtream M3U URL'ini direkt tek kanal olarak ekle */
+function buildXtreamFromURL(host, user, pass) {
+  const m3uUrl = `${host}/get.php?username=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}&type=m3u_plus&output=ts`;
+  showToast('📋 M3U linki oluşturuldu — kopyalayıp M3U sekmesine yapıştır');
+
+  // M3U sekmesine geç ve URL'i oraya yaz
+  document.getElementById('playlist-url').value = m3uUrl;
+  document.querySelectorAll('.add-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.add-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelector('[onclick*="switchAddTab(\'m3u\'"]').classList.add('active');
+  document.getElementById('panel-m3u').classList.add('active');
+  updateLoadBtn('Bağlan', false);
+}
+
+function updateLoadBtn(text, disabled) {
+  const btn = document.querySelector('#panel-xtream .load-btn');
+  if (!btn) return;
+  btn.textContent = text;
+  btn.disabled = disabled;
+  btn.style.opacity = disabled ? '0.6' : '1';
+}
+
+function applyChannels(result) {
+  if (!result.length) { showToast('❌ Kanal bulunamadı'); return; }
+  channels = result; saveChannels(); filtered = channels; activeCategory = 'Tümü';
+  renderChannels(channels); renderCategories(); renderFavorites();
+  showToast(`✅ ${channels.length} kanal yüklendi`);
+  switchScreen('home', document.querySelector('[data-screen="home"]'));
 }
 
 function processM3U(text) {
   const p = parseM3U(text);
   if (!p.length) { showToast('❌ Kanal bulunamadı'); return; }
-  channels = p; saveChannels(); filtered = channels; activeCategory = 'Tümü';
-  renderChannels(channels); renderCategories(); renderFavorites();
-  showToast(`✅ ${channels.length} kanal yüklendi`);
-  switchScreen('home', document.querySelector('[data-screen="home"]'));
+  applyChannels(p);
+}
+
+function togglePassVis() {
+  const inp = document.getElementById('xt-pass');
+  const eye = document.getElementById('pass-eye');
+  if (inp.type === 'password') { inp.type = 'text'; eye.textContent = '🙈'; }
+  else { inp.type = 'password'; eye.textContent = '👁'; }
 }
 
 function setupFileInput(){
