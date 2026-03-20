@@ -165,9 +165,9 @@ html, body {
 *::-webkit-scrollbar { display:none; }
 
 /* ── HOME ── */
-#screen-home { overflow-y:auto; padding-bottom:calc(90px + var(--sab)); }
+#screen-home { overflow-y:auto; padding-bottom:calc(100px + var(--sab)); display:flex; flex-direction:column; }
 
-.search-wrap { padding:0 16px 14px; }
+.search-wrap { padding:0 16px 10px; flex-shrink:0; }
 .search-glass {
   display:flex; align-items:center; gap:10px;
   padding:12px 16px; border-radius:18px; transition:all .25s;
@@ -185,7 +185,7 @@ html, body {
 .s-icon { color:var(--text-3); font-size:15px; flex-shrink:0; }
 
 /* Category pills */
-.cat-scroll { padding:0 16px 16px; display:flex; gap:8px; overflow-x:auto; }
+.cat-scroll { padding:0 16px 10px; display:flex; gap:8px; overflow-x:auto; flex-shrink:0; }
 .cat-pill {
   flex-shrink:0; padding:7px 16px; border-radius:20px; font-size:13px; font-weight:500;
   cursor:pointer; white-space:nowrap; transition:all .22s; color:var(--text-2);
@@ -198,12 +198,13 @@ html, body {
   box-shadow: 0 0 20px rgba(0,200,255,0.2), 0 0 12px rgba(191,95,255,0.15), 0 2px 8px rgba(0,0,0,0.3);
 }
 
-.sec-header { display:flex; align-items:center; justify-content:space-between; padding:0 20px 10px; }
-.sec-title { font-size:20px; font-weight:700; letter-spacing:-0.5px; }
+.sec-header { display:flex; align-items:center; justify-content:space-between; padding:4px 20px 10px; flex-shrink:0; }
+.sec-title { font-size:17px; font-weight:700; letter-spacing:-0.3px; }
 .sec-count { font-size:12px; color:var(--text-3); font-weight:500; }
 
 /* ── CHANNEL LIST ── */
-#channel-list, #fav-list { display:flex; flex-direction:column; gap:8px; padding:0 14px; }
+#channel-list-wrap { flex:1; overflow-y:auto; }
+#channel-list, #fav-list { display:flex; flex-direction:column; gap:8px; padding:0 14px 16px; }
 
 .channel-item {
   display:flex; align-items:center; gap:14px; padding:12px 14px;
@@ -505,7 +506,88 @@ html, body {
 .nav-item[data-screen="fav"].active .nav-svg path { fill:url(#heartGrad); stroke:#00c8ff; }
 
 
-#toast {
+/* ── XTREAM MODAL ── */
+.modal-overlay {
+  position:fixed; inset:0; z-index:200;
+  background:rgba(0,0,0,0.6);
+  backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+  display:flex; align-items:flex-end;
+  opacity:0; pointer-events:none; transition:.3s;
+}
+.modal-overlay.open { opacity:1; pointer-events:all; }
+
+.modal-sheet {
+  width:100%; border-radius:26px 26px 0 0;
+  padding:20px 20px calc(20px + var(--sab));
+  background:rgba(14,6,30,0.96);
+  border-top:1px solid rgba(255,255,255,0.14);
+  box-shadow:0 -8px 40px rgba(0,0,0,0.6), 0 1px 0 rgba(255,255,255,0.12) inset;
+  transform:translateY(100%); transition:.35s cubic-bezier(.32,1.25,.35,1);
+  max-height:88vh; overflow-y:auto;
+}
+.modal-overlay.open .modal-sheet { transform:translateY(0); }
+
+.modal-handle {
+  width:36px; height:4px; border-radius:2px;
+  background:rgba(255,255,255,0.2); margin:0 auto 20px;
+}
+.modal-title {
+  font-size:19px; font-weight:700; letter-spacing:-0.4px; margin-bottom:6px;
+  background:var(--accent-grad); -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent; background-clip:text;
+}
+.modal-sub { font-size:13px; color:var(--text-3); margin-bottom:20px; }
+
+.xtream-field { margin-bottom:12px; }
+.xtream-label { font-size:11px; font-weight:600; letter-spacing:0.7px; text-transform:uppercase; color:var(--text-3); margin-bottom:6px; display:block; }
+.xtream-input {
+  width:100%; padding:13px 16px; border-radius:16px;
+  background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.13);
+  color:var(--text); font-family:inherit; font-size:15px; outline:none; transition:.2s;
+  box-shadow:0 1px 0 rgba(255,255,255,0.1) inset;
+}
+.xtream-input:focus { border-color:rgba(0,200,255,0.45); box-shadow:0 0 16px rgba(0,200,255,0.1), 0 1px 0 rgba(255,255,255,0.1) inset; }
+.xtream-input::placeholder { color:var(--text-3); }
+
+.xtream-type-row { display:flex; gap:8px; margin-bottom:16px; }
+.xtream-type-btn {
+  flex:1; padding:10px; border-radius:12px; border:1px solid rgba(255,255,255,0.13);
+  background:rgba(255,255,255,0.06); color:var(--text-2); font-size:13px; font-weight:500;
+  cursor:pointer; transition:.2s; text-align:center;
+}
+.xtream-type-btn.active {
+  background:linear-gradient(135deg,rgba(191,95,255,0.25),rgba(0,200,255,0.25));
+  border-color:rgba(0,200,255,0.4); color:#fff;
+}
+
+.modal-load-btn {
+  width:100%; margin-top:6px; padding:15px; border-radius:18px; border:none;
+  background:linear-gradient(135deg,rgba(191,95,255,0.3),rgba(0,200,255,0.3));
+  border:1px solid rgba(0,200,255,0.4);
+  color:#fff; font-size:16px; font-weight:600; cursor:pointer; transition:.2s;
+  box-shadow:0 0 24px rgba(0,200,255,0.15),0 1px 0 rgba(255,255,255,0.2) inset;
+}
+.modal-load-btn:active { transform:scale(0.97); }
+.modal-close-btn {
+  width:100%; margin-top:10px; padding:13px; border-radius:16px; border:none;
+  background:rgba(255,255,255,0.06); color:var(--text-2); font-size:15px; cursor:pointer;
+}
+
+/* Tabs in settings */
+.add-tabs { display:flex; gap:8px; margin-bottom:14px; }
+.add-tab {
+  flex:1; padding:10px 8px; border-radius:14px; border:1px solid rgba(255,255,255,0.1);
+  background:rgba(255,255,255,0.05); color:var(--text-3); font-size:13px; font-weight:500;
+  cursor:pointer; transition:.2s; text-align:center;
+}
+.add-tab.active {
+  background:linear-gradient(135deg,rgba(191,95,255,0.2),rgba(0,200,255,0.2));
+  border-color:rgba(0,200,255,0.35); color:#fff; font-weight:600;
+}
+.add-panel { display:none; }
+.add-panel.active { display:block; }
+
+/* ── TOAST ── */
   position:fixed; bottom:calc(116px + var(--sab)); left:50%;
   transform:translateX(-50%) translateY(16px) scale(0.95);
   padding:10px 22px; border-radius:22px;
@@ -570,7 +652,9 @@ html, body {
       <span class="sec-title">Kanallar</span>
       <span class="sec-count" id="ch-count-label">0 kanal</span>
     </div>
-    <div id="channel-list"></div>
+    <div id="channel-list-wrap">
+      <div id="channel-list"></div>
+    </div>
   </div>
 
   <!-- PLAYER -->
@@ -614,16 +698,51 @@ html, body {
   <div class="screen" id="screen-settings">
     <div style="height:8px;"></div>
 
+    <!-- ADD SOURCE TABS -->
     <div class="input-group">
-      <span class="input-label">M3U URL veya İçerik</span>
-      <textarea class="glass-textarea" id="playlist-url" placeholder="https://example.com/playlist.m3u&#10;veya M3U içeriğini buraya yapıştır…"></textarea>
-      <button class="load-btn" onclick="loadFromURL()">Yükle</button>
-    </div>
+      <span class="input-label">Kaynak Ekle</span>
+      <div class="add-tabs">
+        <div class="add-tab active" onclick="switchAddTab('m3u',this)">🔗 M3U URL</div>
+        <div class="add-tab" onclick="switchAddTab('xtream',this)">📡 Xtream</div>
+        <div class="add-tab" onclick="switchAddTab('file',this)">📂 Dosya</div>
+      </div>
 
-    <div class="input-group">
-      <span class="input-label">Dosyadan Yükle</span>
-      <label class="file-glass-label" for="file-input">📂&nbsp; M3U / M3U8 Dosyası Seç</label>
-      <input type="file" id="file-input" accept=".m3u,.m3u8,.txt">
+      <!-- M3U URL Panel -->
+      <div class="add-panel active" id="panel-m3u">
+        <textarea class="glass-textarea" id="playlist-url" placeholder="https://example.com/playlist.m3u&#10;veya M3U içeriğini buraya yapıştır…"></textarea>
+        <button class="load-btn" onclick="loadFromURL()">Yükle</button>
+      </div>
+
+      <!-- Xtream Codes Panel -->
+      <div class="add-panel" id="panel-xtream">
+        <div class="xtream-field">
+          <span class="xtream-label">Sunucu URL</span>
+          <input class="xtream-input" id="xt-host" type="url" placeholder="http://sunucu.com:8080">
+        </div>
+        <div class="xtream-field">
+          <span class="xtream-label">Kullanıcı Adı</span>
+          <input class="xtream-input" id="xt-user" type="text" placeholder="kullanici_adi">
+        </div>
+        <div class="xtream-field">
+          <span class="xtream-label">Şifre</span>
+          <input class="xtream-input" id="xt-pass" type="password" placeholder="••••••••">
+        </div>
+        <div style="margin-bottom:12px;">
+          <span class="xtream-label">İçerik Türü</span>
+          <div class="xtream-type-row">
+            <div class="xtream-type-btn active" onclick="selectXtType('live',this)">📺 Canlı</div>
+            <div class="xtream-type-btn" onclick="selectXtType('vod',this)">🎬 VOD</div>
+            <div class="xtream-type-btn" onclick="selectXtType('series',this)">📺 Dizi</div>
+          </div>
+        </div>
+        <button class="load-btn" onclick="loadXtream()">Bağlan</button>
+      </div>
+
+      <!-- File Panel -->
+      <div class="add-panel" id="panel-file">
+        <label class="file-glass-label" for="file-input">📂&nbsp; M3U / M3U8 Dosyası Seç</label>
+        <input type="file" id="file-input" accept=".m3u,.m3u8,.txt">
+      </div>
     </div>
 
     <div class="settings-group">
@@ -753,25 +872,117 @@ function parseM3U(text) {
   return res;
 }
 
-function loadFromURL(){
-  const v=document.getElementById('playlist-url').value.trim();
-  if(!v){showToast('URL veya içerik gir');return;}
-  if(v.startsWith('#EXTM3U')||v.includes('#EXTINF')){processM3U(v);return;}
-  if(!v.startsWith('http')){showToast('Geçerli bir URL gir');return;}
-  showToast('⏳ Yükleniyor…');
-  fetch(`https://corsproxy.io/?${encodeURIComponent(v)}`)
-    .then(r=>{if(!r.ok)throw 0;return r.text();})
-    .then(t=>processM3U(t))
-    .catch(()=>fetch(v).then(r=>r.text()).then(t=>processM3U(t)).catch(()=>showToast('❌ Yüklenemedi')));
+/* ── ADD SOURCE TABS ── */
+let xtreamType = 'live';
+
+function switchAddTab(tab, el) {
+  document.querySelectorAll('.add-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.add-panel').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('panel-'+tab).classList.add('active');
 }
 
-function processM3U(text){
-  const p=parseM3U(text);
-  if(!p.length){showToast('❌ Kanal bulunamadı');return;}
-  channels=p; saveChannels(); filtered=channels; activeCategory='Tümü';
+function selectXtType(type, el) {
+  xtreamType = type;
+  document.querySelectorAll('.xtream-type-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+/* ── M3U URL LOADER (multi-proxy fallback) ── */
+const PROXIES = [
+  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  url => `https://cors-anywhere.herokuapp.com/${url}`,
+];
+
+async function tryFetch(url) {
+  // 1. Direct fetch first
+  try {
+    const r = await fetch(url, {signal: AbortSignal.timeout(8000)});
+    if (r.ok) { const t = await r.text(); if(t.includes('#EXTINF')||t.includes('#EXTM3U')) return t; }
+  } catch(e) {}
+  // 2. Try each proxy
+  for (const proxy of PROXIES) {
+    try {
+      const r = await fetch(proxy(url), {signal: AbortSignal.timeout(10000)});
+      if (r.ok) { const t = await r.text(); if(t.includes('#EXTINF')||t.includes('#EXTM3U')) return t; }
+    } catch(e) {}
+  }
+  throw new Error('Tüm proxy\'ler başarısız');
+}
+
+function loadFromURL() {
+  const v = document.getElementById('playlist-url').value.trim();
+  if (!v) { showToast('⚠️ URL veya M3U içeriği gir'); return; }
+  if (v.startsWith('#EXTM3U') || v.includes('#EXTINF')) { processM3U(v); return; }
+  if (!v.startsWith('http')) { showToast('⚠️ Geçerli bir URL gir (http...)'); return; }
+  showToast('⏳ Yükleniyor…');
+  tryFetch(v)
+    .then(t => processM3U(t))
+    .catch(() => showToast('❌ Yüklenemedi. Dosya yöntemi ile dene.'));
+}
+
+/* ── XTREAM CODES LOADER ── */
+async function loadXtream() {
+  const host = document.getElementById('xt-host').value.trim().replace(/\/$/, '');
+  const user = document.getElementById('xt-user').value.trim();
+  const pass = document.getElementById('xt-pass').value.trim();
+  if (!host || !user || !pass) { showToast('⚠️ Tüm alanları doldur'); return; }
+
+  showToast('⏳ Xtream bağlanıyor…');
+
+  // Build M3U URL from Xtream API
+  const m3uUrl = `${host}/get.php?username=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}&type=m3u_plus&output=ts`;
+
+  tryFetch(m3uUrl)
+    .then(t => {
+      if (!t.includes('#EXTINF') && !t.includes('#EXTM3U')) {
+        // Try JSON API fallback
+        return loadXtreamJSON(host, user, pass);
+      }
+      processM3U(t);
+    })
+    .catch(() => loadXtreamJSON(host, user, pass));
+}
+
+async function loadXtreamJSON(host, user, pass) {
+  const typeMap = { live: 'get_live_streams', vod: 'get_vod_streams', series: 'get_series' };
+  const apiUrl = `${host}/player_api.php?username=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}&action=${typeMap[xtreamType]}`;
+
+  try {
+    const text = await tryFetch(apiUrl);
+    const data = JSON.parse(text);
+    if (!Array.isArray(data) || !data.length) { showToast('❌ Kanal verisi alınamadı'); return; }
+
+    // Convert JSON to channel objects
+    const result = data.map(item => {
+      const ext = xtreamType === 'live' ? 'ts' : 'm3u8';
+      const streamUrl = `${host}/${xtreamType}/${encodeURIComponent(user)}/${encodeURIComponent(pass)}/${item.stream_id || item.series_id}.${ext}`;
+      return {
+        name: item.name || item.title || 'Bilinmiyor',
+        group: item.category_name || item.category_id || 'Genel',
+        logo: item.stream_icon || item.cover || '',
+        url: streamUrl,
+        uid: btoa(encodeURIComponent((item.name||'') + streamUrl)).substring(0,20)
+      };
+    });
+
+    channels = result; saveChannels(); filtered = channels; activeCategory = 'Tümü';
+    renderChannels(channels); renderCategories(); renderFavorites();
+    showToast(`✅ ${channels.length} kanal yüklendi`);
+    switchScreen('home', document.querySelector('[data-screen="home"]'));
+  } catch(e) {
+    showToast('❌ Xtream bağlantısı başarısız');
+  }
+}
+
+function processM3U(text) {
+  const p = parseM3U(text);
+  if (!p.length) { showToast('❌ Kanal bulunamadı'); return; }
+  channels = p; saveChannels(); filtered = channels; activeCategory = 'Tümü';
   renderChannels(channels); renderCategories(); renderFavorites();
   showToast(`✅ ${channels.length} kanal yüklendi`);
-  switchScreen('home',document.querySelector('[data-screen="home"]'));
+  switchScreen('home', document.querySelector('[data-screen="home"]'));
 }
 
 function setupFileInput(){
