@@ -63,11 +63,12 @@ html,body{height:100%;width:100%;overflow:hidden;background:#08001a;color:var(--
 .logo{display:flex;align-items:center;gap:10px;}
 .logo-icon{width:34px;height:34px;border-radius:9px;overflow:hidden;flex-shrink:0;box-shadow:0 0 14px rgba(0,200,255,.35),0 0 28px rgba(191,95,255,.25);}
 .logo-icon img{width:100%;height:100%;object-fit:cover;display:block;}
-.logo-text{font-size:22px;font-weight:800;letter-spacing:-.8px;background:var(--accent-grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-.logo-text span{opacity:.6;font-weight:500;}
+.logo-text{font-size:22px;font-weight:800;letter-spacing:-.5px;background:var(--accent-grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
 .top-actions{display:flex;gap:10px;}
 .glass-btn{width:40px;height:40px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--text);transition:all .2s;position:relative;}
 .glass-btn:active{transform:scale(.86);}
+.fav-top-btn svg{stroke:var(--text2);transition:.2s;}
+.fav-top-btn:hover svg,.fav-top-btn.active-fav svg{stroke:var(--red);filter:drop-shadow(0 0 6px rgba(255,69,58,.5));}
 
 /* ── SCREENS ── */
 .screen{display:none;flex-direction:column;flex:1;overflow:hidden;}
@@ -344,41 +345,109 @@ html,body{height:100%;width:100%;overflow:hidden;background:#08001a;color:var(--
 <div id="topbar">
   <div class="logo">
     <div class="logo-icon"><img src="app_icon.png" alt="OrionTV"></div>
-    <div class="logo-text">Orion<span>TV</span></div>
+    <div class="logo-text">OrionTV</div>
   </div>
   <div class="top-actions">
-    <button class="glass-btn glass" onclick="goSettings()">⚙️</button>
-    <button class="glass-btn glass" onclick="focusSearch()">🔍</button>
+    <button class="fav-top-btn glass-btn glass" onclick="goScreen('fav', document.querySelector('[data-s=fav]'))" title="Favoriler">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+      </svg>
+    </button>
   </div>
 </div>
 
-<!-- ══ HOME SCREEN ══ -->
-<div class="screen active" id="screen-home">
+<!-- ══ LIVE SCREEN ══ -->
+<div class="screen active" id="screen-live">
   <div id="home-top">
     <div class="search-wrap">
       <div class="search-glass glass">
-        <span class="s-icon">🔍</span>
+        <span class="s-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        </span>
         <input type="text" id="search-input" placeholder="Kanal ara…">
       </div>
     </div>
     <div class="cat-scroll" id="cat-scroll"></div>
     <div class="sec-header">
-      <span class="sec-title" id="sec-title-lbl">Kanallar</span>
+      <span class="sec-title" id="sec-title-lbl">Canlı TV</span>
       <span class="sec-count" id="ch-count"></span>
     </div>
   </div>
-
-  <!-- When channels exist -->
-  <div id="ch-scroll" style="display:none;">
-    <div id="channel-list"></div>
-  </div>
-
-  <!-- When no channels — fixed centered -->
+  <div id="ch-scroll" style="display:none;"><div id="channel-list"></div></div>
   <div id="empty-home" class="empty-state">
-    <div class="empty-icon">📡</div>
-    <div class="empty-title">Henüz Kanal Yok</div>
-    <div class="empty-sub">Ayarlar'dan M3U link,<br>Xtream Code veya dosya ile ekle</div>
-    <button class="empty-cta" onclick="goSettings()">Kaynak Ekle</button>
+    <div class="empty-icon">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" style="opacity:.3">
+        <path d="M22 12H2M5 12V7a7 7 0 0 1 14 0v5"/>
+        <rect x="7" y="12" width="10" height="8" rx="2"/>
+        <path d="M12 18v-2"/>
+      </svg>
+    </div>
+    <div class="empty-title">Kanal Yok</div>
+    <div class="empty-sub">Ayarlar'dan M3U veya Xtream ile ekle</div>
+    <button class="empty-cta" onclick="goScreen('settings', document.querySelector('[data-s=settings]'))">Kaynak Ekle</button>
+  </div>
+</div>
+
+<!-- ══ VOD SCREEN ══ -->
+<div class="screen" id="screen-vod">
+  <div id="vod-top">
+    <div class="search-wrap">
+      <div class="search-glass glass">
+        <span class="s-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        </span>
+        <input type="text" id="vod-search" placeholder="Film ara…">
+      </div>
+    </div>
+    <div class="cat-scroll" id="vod-cat-scroll"></div>
+    <div class="sec-header">
+      <span class="sec-title">Film</span>
+      <span class="sec-count" id="vod-count"></span>
+    </div>
+  </div>
+  <div id="vod-scroll" style="display:none;"><div id="vod-list"></div></div>
+  <div id="vod-empty" class="empty-state">
+    <div class="empty-icon">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" style="opacity:.3">
+        <rect x="2" y="2" width="20" height="20" rx="3"/>
+        <path d="M7 2v20M17 2v20M2 12h20M2 7h5M17 7h5M2 17h5M17 17h5"/>
+      </svg>
+    </div>
+    <div class="empty-title">Film Yok</div>
+    <div class="empty-sub">Ayarlar → Xtream → Film seç</div>
+    <button class="empty-cta" onclick="goSettings('vod')">Kaynak Ekle</button>
+  </div>
+</div>
+
+<!-- ══ SERIES SCREEN ══ -->
+<div class="screen" id="screen-series">
+  <div id="ser-top">
+    <div class="search-wrap">
+      <div class="search-glass glass">
+        <span class="s-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        </span>
+        <input type="text" id="ser-search" placeholder="Dizi ara…">
+      </div>
+    </div>
+    <div class="cat-scroll" id="ser-cat-scroll"></div>
+    <div class="sec-header">
+      <span class="sec-title">Dizi</span>
+      <span class="sec-count" id="ser-count"></span>
+    </div>
+  </div>
+  <div id="ser-scroll" style="display:none;"><div id="ser-list"></div></div>
+  <div id="ser-empty" class="empty-state">
+    <div class="empty-icon">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" style="opacity:.3">
+        <rect x="2" y="7" width="20" height="14" rx="2"/>
+        <path d="M16 2 8 2M12 2v5"/>
+        <path d="m10 11 5 3-5 3V11z"/>
+      </svg>
+    </div>
+    <div class="empty-title">Dizi Yok</div>
+    <div class="empty-sub">Ayarlar → Xtream → Dizi seç</div>
+    <button class="empty-cta" onclick="goSettings('series')">Kaynak Ekle</button>
   </div>
 </div>
 
@@ -415,8 +484,11 @@ html,body{height:100%;width:100%;overflow:hidden;background:#08001a;color:var(--
 <div class="screen" id="screen-fav">
   <div class="sec-header" style="padding-top:8px;">
     <span class="sec-title">Favoriler</span>
+    <span class="sec-count" id="fav-count"></span>
   </div>
-  <div id="fav-list" style="padding:0 14px;"></div>
+  <div id="fav-scroll" style="overflow-y:auto;flex:1;">
+    <div id="fav-list" style="padding:0 14px;display:flex;flex-direction:column;gap:8px;"></div>
+  </div>
 </div>
 
 <!-- ══ SETTINGS SCREEN ══ -->
@@ -521,34 +593,44 @@ html,body{height:100%;width:100%;overflow:hidden;background:#08001a;color:var(--
 <!-- ── BOTTOM NAV ── -->
 <div id="nav-wrap">
   <div id="bottom-nav">
-    <div class="nav-item active" data-s="home" onclick="goScreen('home',this)">
+
+    <!-- Canlı -->
+    <div class="nav-item active" data-s="live" onclick="goScreen('live',this)">
       <div class="nav-pill">
         <svg class="nav-svg" viewBox="0 0 24 24">
-          <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/>
-          <path d="m3.5 11.5 5 5M12 7.5l-5 5M20 4 8.5 15.5"/>
-          <path d="M16 4c0 0-4 0-8 4s-4 8-4 8M20 4c0 0 0 4-4 8s-8 4-8 4"/>
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M5.64 5.64a9 9 0 1 0 12.72 12.72A9 9 0 0 0 5.64 5.64"/>
+          <path d="M8.46 8.46a5 5 0 1 0 7.07 7.07A5 5 0 0 0 8.46 8.46"/>
         </svg>
       </div>
-      <span class="nav-lbl">Kanallar</span>
+      <span class="nav-lbl">Canlı TV</span>
     </div>
-    <div class="nav-item" data-s="player" onclick="goScreen('player',this)">
+
+    <!-- VOD -->
+    <div class="nav-item" data-s="vod" onclick="goScreen('vod',this)">
       <div class="nav-pill">
         <svg class="nav-svg" viewBox="0 0 24 24">
-          <rect x="2" y="3" width="20" height="14" rx="3"/>
+          <rect x="2" y="3" width="20" height="14" rx="2.5"/>
           <path d="M8 21h8M12 17v4"/>
-          <polygon points="10,8 16,11 10,14" class="play-tri"/>
+          <polygon points="10,7.5 16,10.5 10,13.5" class="play-tri"/>
         </svg>
       </div>
-      <span class="nav-lbl">Oynatıcı</span>
+      <span class="nav-lbl">Film</span>
     </div>
-    <div class="nav-item" data-s="fav" onclick="goScreen('fav',this)">
+
+    <!-- Dizi -->
+    <div class="nav-item" data-s="series" onclick="goScreen('series',this)">
       <div class="nav-pill">
         <svg class="nav-svg" viewBox="0 0 24 24">
-          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+          <rect x="2" y="7" width="20" height="13" rx="2.5"/>
+          <path d="M16 2H8M12 2v5"/>
+          <polygon points="10,11.5 16,14.5 10,17.5" class="play-tri"/>
         </svg>
       </div>
-      <span class="nav-lbl">Favoriler</span>
+      <span class="nav-lbl">Dizi</span>
     </div>
+
+    <!-- Ayarlar -->
     <div class="nav-item" data-s="settings" onclick="goScreen('settings',this)">
       <div class="nav-pill">
         <svg class="nav-svg" viewBox="0 0 24 24">
@@ -558,6 +640,7 @@ html,body{height:100%;width:100%;overflow:hidden;background:#08001a;color:var(--
       </div>
       <span class="nav-lbl">Ayarlar</span>
     </div>
+
   </div>
 </div>
 </div><!-- #app -->
@@ -567,10 +650,13 @@ html,body{height:100%;width:100%;overflow:hidden;background:#08001a;color:var(--
 <script>
 'use strict';
 // ══════════════════════════════════════════
-// STATE
+// STATE — separate stores per content type
 // ══════════════════════════════════════════
-let channels = [], filtered = [], favorites = new Set();
-let currentCh = null, currentIdx = -1, activeCat = 'Tümü';
+let liveChannels = [], vodChannels = [], seriesChannels = [];
+let liveFiltered = [], vodFiltered = [], serFiltered = [];
+let liveCat = 'Tümü', vodCat = 'Tümü', serCat = 'Tümü';
+let favorites = new Set();
+let currentCh = null, currentIdx = -1;
 let xtType = 'live';
 
 // ══════════════════════════════════════════
@@ -578,8 +664,9 @@ let xtType = 'live';
 // ══════════════════════════════════════════
 function init() {
   loadStorage();
-  renderHome();
-  renderCats();
+  renderLive(); renderCats('live');
+  renderVod();  renderCats('vod');
+  renderSer();  renderCats('series');
   renderFavs();
   setupSearch();
   setupFileInput();
@@ -590,15 +677,29 @@ function init() {
 // STORAGE
 // ══════════════════════════════════════════
 function loadStorage() {
-  try { const c = localStorage.getItem('orion_ch'); if (c) channels = JSON.parse(c); } catch(e){}
-  try { const f = localStorage.getItem('orion_fav'); if (f) favorites = new Set(JSON.parse(f)); } catch(e){}
+  try { const c = localStorage.getItem('orion_live'); if (c) liveChannels = JSON.parse(c); } catch(e){}
+  try { const c = localStorage.getItem('orion_vod');  if (c) vodChannels  = JSON.parse(c); } catch(e){}
+  try { const c = localStorage.getItem('orion_ser');  if (c) seriesChannels = JSON.parse(c); } catch(e){}
+  try { const f = localStorage.getItem('orion_fav');  if (f) favorites = new Set(JSON.parse(f)); } catch(e){}
+  // legacy migration
+  try { const old = localStorage.getItem('orion_ch'); if (old && !liveChannels.length) { liveChannels = JSON.parse(old); localStorage.removeItem('orion_ch'); saveLive(); } } catch(e){}
 }
-function saveCh()  { try { localStorage.setItem('orion_ch',  JSON.stringify(channels)); } catch(e){} }
-function saveFav() { try { localStorage.setItem('orion_fav', JSON.stringify([...favorites])); } catch(e){} }
+function saveLive()   { try { localStorage.setItem('orion_live', JSON.stringify(liveChannels));   } catch(e){} }
+function saveVod()    { try { localStorage.setItem('orion_vod',  JSON.stringify(vodChannels));    } catch(e){} }
+function saveSer()    { try { localStorage.setItem('orion_ser',  JSON.stringify(seriesChannels)); } catch(e){} }
+function saveFav()    { try { localStorage.setItem('orion_fav',  JSON.stringify([...favorites])); } catch(e){} }
 
 // ══════════════════════════════════════════
 // M3U PARSER
 // ══════════════════════════════════════════
+function makeUid(name, url) {
+  // Safe alphanumeric uid — no special chars that break onclick attributes
+  let h = 0;
+  const s = name + url;
+  for (let i = 0; i < s.length; i++) { h = Math.imul(31, h) + s.charCodeAt(i) | 0; }
+  return 'c' + Math.abs(h).toString(36);
+}
+
 function parseM3U(text) {
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
   const res = []; let cur = null;
@@ -610,7 +711,7 @@ function parseM3U(text) {
       const lo = l.match(/tvg-logo="([^"]*)"/i);    if (lo) cur.logo  = lo[1].trim();
     } else if (cur && !l.startsWith('#')) {
       cur.url = l;
-      cur.uid = btoa(encodeURIComponent(cur.name + cur.url)).substring(0, 20);
+      cur.uid = makeUid(cur.name, l);
       res.push(cur); cur = null;
     }
   }
@@ -753,7 +854,7 @@ async function loadXtream() {
         group: catName[item.category_id] || item.category_name || 'Genel',
         logo:  item.stream_icon || item.cover || item.movie_image || '',
         url:   streamUrl,
-        uid:   btoa(encodeURIComponent((item.name || '') + String(sid))).substring(0, 20),
+        uid:   makeUid(item.name || '', String(sid)),
       };
     });
 
@@ -788,13 +889,16 @@ function setBtnState(id, text, disabled) {
 // ══════════════════════════════════════════
 // APPLY CHANNELS
 // ══════════════════════════════════════════
-function applyChannels(list) {
-  if (!list || !list.length) { showToast('❌ Kanal bulunamadı'); return; }
-  channels = list; saveCh();
-  filtered = channels; activeCat = 'Tümü';
-  renderHome(); renderCats(); renderFavs();
-  showToast('✅ ' + channels.length + ' kanal yüklendi');
-  goScreen('home', document.querySelector('[data-s="home"]'));
+function applyChannels(list, type) {
+  if (!list||!list.length){showToast('❌ İçerik bulunamadı');return;}
+  const t = type || xtType || 'live';
+  if(t==='live')  {liveChannels=list;liveFiltered=[];liveCat='Tümü';saveLive();renderLive();renderCats('live');}
+  else if(t==='vod'){vodChannels=list;vodFiltered=[];vodCat='Tümü';saveVod();renderVod();renderCats('vod');}
+  else{seriesChannels=list;serFiltered=[];serCat='Tümü';saveSer();renderSer();renderCats('series');}
+  renderFavs();
+  showToast('✅ '+list.length+' içerik yüklendi');
+  const smap={live:'live',vod:'vod',series:'series'};
+  goScreen(smap[t]||'live', document.querySelector(`[data-s="${smap[t]||'live'}"]`));
 }
 
 // ══════════════════════════════════════════
@@ -802,260 +906,227 @@ function applyChannels(list) {
 // ══════════════════════════════════════════
 function setupFileInput() {
   document.getElementById('file-input').addEventListener('change', function(e) {
-    const f = e.target.files[0]; if (!f) return;
-    const r = new FileReader();
-    r.onload = ev => applyChannels(parseM3U(ev.target.result));
+    const f=e.target.files[0]; if(!f) return;
+    const r=new FileReader();
+    r.onload=ev=>applyChannels(parseM3U(ev.target.result), xtType||'live');
     r.readAsText(f);
   });
 }
 
 // ══════════════════════════════════════════
-// RENDER HOME
+// RENDER
 // ══════════════════════════════════════════
-function renderHome() {
-  const list = filtered.length || activeCat !== 'Tümü' || document.getElementById('search-input').value
-    ? filtered
-    : channels;
+function renderLive(){renderCS('live',liveChannels,liveFiltered,liveCat,'channel-list','ch-scroll','empty-home','ch-count');}
+function renderVod() {renderCS('vod', vodChannels, vodFiltered, vodCat, 'vod-list',    'vod-scroll','vod-empty', 'vod-count');}
+function renderSer() {renderCS('series',seriesChannels,serFiltered,serCat,'ser-list','ser-scroll','ser-empty','ser-count');}
 
-  const scroll = document.getElementById('ch-scroll');
-  const empty  = document.getElementById('empty-home');
-  const cnt    = document.getElementById('ch-count');
-
-  if (list.length) {
-    scroll.style.display = '';
-    empty.style.display  = 'none';
-    cnt.textContent = list.length + ' kanal';
-    document.getElementById('channel-list').innerHTML = list.map((ch, i) => chHTML(ch, i)).join('');
-  } else if (!channels.length) {
-    scroll.style.display = 'none';
-    empty.style.display  = '';
-    cnt.textContent = '';
-  } else {
-    // Search/filter returned 0 results but channels exist
-    scroll.style.display = '';
-    empty.style.display  = 'none';
-    cnt.textContent = '0 sonuç';
-    document.getElementById('channel-list').innerHTML = `
-      <div class="empty-state" style="flex:none;padding:48px 24px;">
-        <div class="empty-icon">🔍</div>
-        <div class="empty-title">Sonuç Bulunamadı</div>
-        <div class="empty-sub">Farklı bir arama dene</div>
-      </div>`;
+function renderCS(type,all,fil,cat,listId,scrollId,emptyId,cntId){
+  const sid=type==='live'?'search-input':type==='vod'?'vod-search':'ser-search';
+  const q=(document.getElementById(sid)?.value||'').trim();
+  const hasF=q||cat!=='Tümü';
+  const list=hasF?fil:all;
+  const scroll=document.getElementById(scrollId);
+  const empty=document.getElementById(emptyId);
+  const cnt=document.getElementById(cntId);
+  if(!all.length){scroll.style.display='none';empty.style.display='';cnt.textContent='';return;}
+  empty.style.display='none';
+  if(list.length){
+    scroll.style.display='';cnt.textContent=list.length+' içerik';
+    document.getElementById(listId).innerHTML=list.map((ch,i)=>chHTML(ch,i,type)).join('');
+  }else{
+    scroll.style.display='';cnt.textContent='0 sonuç';
+    document.getElementById(listId).innerHTML=`<div class="empty-state" style="flex:none;padding:48px 24px;"><div class="empty-icon" style="font-size:40px;opacity:.3">🔍</div><div class="empty-title">Sonuç Bulunamadı</div></div>`;
   }
 }
 
-function chHTML(ch, i) {
-  const isFav     = favorites.has(ch.uid);
-  const isPlaying = currentCh && currentCh.uid === ch.uid;
-  const abbr      = ch.name.replace(/\s+/g,'').substring(0,3).toUpperCase();
-  const logo      = ch.logo
-    ? `<img src="${ch.logo}" onerror="this.style.display='none'" loading="lazy">`
-    : `<span>${esc(abbr)}</span>`;
-
-  return `<div class="channel-item${isPlaying?' playing':''}" onclick="playCh('${ch.uid}')" style="animation-delay:${Math.min(i*.025,.4)}s">
-    ${isPlaying ? '<div class="playing-bar"></div>' : ''}
+function chHTML(ch,i,type){
+  const isFav=favorites.has(ch.uid);
+  const isPlaying=currentCh&&currentCh.uid===ch.uid;
+  const abbr=ch.name.replace(/\s+/g,'').substring(0,3).toUpperCase();
+  const logo=ch.logo?`<img src="${ch.logo}" onerror="this.style.display='none'" loading="lazy">`:`<span>${esc(abbr)}</span>`;
+  return `<div class="channel-item${isPlaying?' playing':''}" onclick="playCh('${ch.uid}','${type}')" style="animation-delay:${Math.min(i*.02,.35)}s">
+    ${isPlaying?'<div class="playing-bar"></div>':''}
     <div class="ch-logo">${logo}</div>
-    <div class="ch-info">
-      <div class="ch-name">${esc(ch.name)}</div>
-      <div class="ch-group">${esc(ch.group)}</div>
-    </div>
-    <div class="ch-right">
-      <button class="fav-btn${isFav?' active':''}" onclick="toggleFav(event,'${ch.uid}')">${isFav?'❤️':'🤍'}</button>
-    </div>
+    <div class="ch-info"><div class="ch-name">${esc(ch.name)}</div><div class="ch-group">${esc(ch.group)}</div></div>
+    <div class="ch-right"><button class="fav-btn${isFav?' active':''}" onclick="toggleFav(event,'${ch.uid}')">${isFav?'❤️':'🤍'}</button></div>
   </div>`;
 }
 
 // ══════════════════════════════════════════
 // CATEGORIES
 // ══════════════════════════════════════════
-function renderCats() {
-  const cats = ['Tümü'];
-  const seen = new Set();
-  channels.forEach(c => { if (c.group && !seen.has(c.group)) { seen.add(c.group); cats.push(c.group); } });
-  document.getElementById('cat-scroll').innerHTML = cats.map(c =>
-    `<div class="cat-pill${c===activeCat?' active':''}" onclick="setCat('${c.replace(/'/g,"\\'")}')">${esc(c)}</div>`
+function renderCats(type){
+  const all=type==='live'?liveChannels:type==='vod'?vodChannels:seriesChannels;
+  const sid=type==='live'?'cat-scroll':type==='vod'?'vod-cat-scroll':'ser-cat-scroll';
+  const ac=type==='live'?liveCat:type==='vod'?vodCat:serCat;
+  const cats=['Tümü'];const seen=new Set();
+  all.forEach(c=>{if(c.group&&!seen.has(c.group)){seen.add(c.group);cats.push(c.group);}});
+  document.getElementById(sid).innerHTML=cats.map(c=>
+    `<div class="cat-pill${c===ac?' active':''}" onclick="setCat('${type}','${c.replace(/'/g,"\\'")}')">${esc(c)}</div>`
   ).join('');
 }
-
-function setCat(cat) {
-  activeCat = cat; renderCats(); applyFilters();
+function setCat(type,cat){
+  if(type==='live')liveCat=cat;else if(type==='vod')vodCat=cat;else serCat=cat;
+  renderCats(type);applyFilters(type);
 }
 
 // ══════════════════════════════════════════
 // SEARCH
 // ══════════════════════════════════════════
-function setupSearch() {
-  document.getElementById('search-input').addEventListener('input', applyFilters);
+function setupSearch(){
+  [['search-input','live'],['vod-search','vod'],['ser-search','series']].forEach(([id,t])=>{
+    const el=document.getElementById(id);if(el)el.addEventListener('input',()=>applyFilters(t));
+  });
 }
-function focusSearch() {
-  goScreen('home', document.querySelector('[data-s="home"]'));
-  setTimeout(() => document.getElementById('search-input').focus(), 200);
-}
-function applyFilters() {
-  const q = document.getElementById('search-input').value.toLowerCase();
-  let list = channels;
-  if (activeCat !== 'Tümü') list = list.filter(c => c.group === activeCat);
-  if (q) list = list.filter(c => c.name.toLowerCase().includes(q));
-  filtered = list; renderHome();
+function applyFilters(type){
+  const sid=type==='live'?'search-input':type==='vod'?'vod-search':'ser-search';
+  const q=(document.getElementById(sid)?.value||'').toLowerCase().trim();
+  const all=type==='live'?liveChannels:type==='vod'?vodChannels:seriesChannels;
+  const cat=type==='live'?liveCat:type==='vod'?vodCat:serCat;
+  let list=all;
+  if(cat!=='Tümü')list=list.filter(c=>c.group===cat);
+  if(q)list=list.filter(c=>c.name.toLowerCase().includes(q));
+  if(type==='live')liveFiltered=list;else if(type==='vod')vodFiltered=list;else serFiltered=list;
+  if(type==='live')renderLive();else if(type==='vod')renderVod();else renderSer();
 }
 
 // ══════════════════════════════════════════
 // PLAY
 // ══════════════════════════════════════════
-function playCh(uid) {
-  const ch = channels.find(c => c.uid === uid); if (!ch) return;
-  currentCh = ch;
-  const list = filtered.length ? filtered : channels;
-  currentIdx = list.indexOf(ch);
-
-  const v = document.getElementById('main-video');
-  v.src = ch.url; v.load();
-  v.play().catch(() => {});
-
-  document.getElementById('ov-title').textContent = ch.name;
-  document.getElementById('ov-group').textContent = ch.group;
-  document.getElementById('pi-name').textContent  = ch.name;
-  document.getElementById('pi-group').textContent = ch.group;
-
+function playCh(uid,type){
+  const all=type==='live'?liveChannels:type==='vod'?vodChannels:seriesChannels;
+  const ch=all.find(c=>c.uid===uid);if(!ch)return;
+  currentCh=ch;
+  const sid=type==='live'?'search-input':type==='vod'?'vod-search':'ser-search';
+  const q=(document.getElementById(sid)?.value||'').trim();
+  const cat=type==='live'?liveCat:type==='vod'?vodCat:serCat;
+  const fil=type==='live'?liveFiltered:type==='vod'?vodFiltered:serFiltered;
+  const list=(q||cat!=='Tümü')?fil:all;
+  currentIdx=list.indexOf(ch);if(currentIdx===-1)currentIdx=all.indexOf(ch);
+  const v=document.getElementById('main-video');
+  v.src=ch.url;v.load();v.play().catch(()=>{});
+  v.dataset.type=type;
+  document.getElementById('ov-title').textContent=ch.name;
+  document.getElementById('ov-group').textContent=ch.group;
+  document.getElementById('pi-name').textContent=ch.name;
+  document.getElementById('pi-group').textContent=ch.group;
   showOverlay();
-  goScreen('player', document.querySelector('[data-s="player"]'));
-  renderHome();
-  loadEPG();
+  goScreen('player',document.querySelector('[data-s="player"]'));
+  renderLive();renderVod();renderSer();loadEPG();
 }
 
-function closePlayer() { goScreen('home', document.querySelector('[data-s="home"]')); }
-
-function togglePlay() {
-  const v = document.getElementById('main-video'), b = document.getElementById('pp-btn');
-  if (v.paused) { v.play(); b.textContent='⏸'; } else { v.pause(); b.textContent='▶'; }
+function skipCh(dir){
+  const v=document.getElementById('main-video');
+  const type=v.dataset.type||'live';
+  const all=type==='live'?liveChannels:type==='vod'?vodChannels:seriesChannels;
+  const sid=type==='live'?'search-input':type==='vod'?'vod-search':'ser-search';
+  const q=(document.getElementById(sid)?.value||'').trim();
+  const cat=type==='live'?liveCat:type==='vod'?vodCat:serCat;
+  const fil=type==='live'?liveFiltered:type==='vod'?vodFiltered:serFiltered;
+  const list=((q||cat!=='Tümü')&&fil.length)?fil:all;
+  if(!list.length)return;
+  let idx=currentIdx+dir;
+  if(idx<0)idx=list.length-1;if(idx>=list.length)idx=0;
+  currentIdx=idx;playCh(list[idx].uid,type);
 }
 
-function skipCh(dir) {
-  const list = filtered.length ? filtered : channels; if (!list.length) return;
-  let idx = currentIdx + dir;
-  if (idx < 0) idx = list.length - 1;
-  if (idx >= list.length) idx = 0;
-  playCh(list[idx].uid);
+function closePlayer(){
+  const v=document.getElementById('main-video');
+  const type=v.dataset.type||'live';
+  goScreen(type,document.querySelector(`[data-s="${type}"]`));
 }
 
-function setupVideoTap() {
-  let t;
-  document.getElementById('video-wrap').addEventListener('click', () => {
-    const o = document.getElementById('player-overlay'); o.classList.toggle('show');
-    clearTimeout(t);
-    if (o.classList.contains('show')) t = setTimeout(() => o.classList.remove('show'), 4500);
-  });
-}
-
-function showOverlay() {
-  const o = document.getElementById('player-overlay'); o.classList.add('show');
-  setTimeout(() => o.classList.remove('show'), 4500);
-}
-
-// ══════════════════════════════════════════
-// EPG (demo)
-// ══════════════════════════════════════════
-function loadEPG() {
-  const now = new Date();
-  const fmt = d => d.toLocaleTimeString('tr',{hour:'2-digit',minute:'2-digit'});
-  const shows = [
-    { s:new Date(now-3600000), e:new Date(now),          title:'Haber Bülteni',  desc:'Günün haberleri.' },
-    { s:new Date(now),         e:new Date(now+3600000),  title:'🔴 Canlı Yayın', desc:'Şu an yayında.', now:true },
-    { s:new Date(now+3600000), e:new Date(now+7200000),  title:'Film Kuşağı',    desc:'Seçkin filmler.' },
-  ];
-  document.getElementById('epg-sched').innerHTML = shows.map(sh => {
-    const prog = sh.now ? Math.min(100, ((Date.now()-sh.s)/(sh.e-sh.s))*100) : (sh.s<now?100:0);
-    return `<div class="epg-block glass">
-      <span class="epg-tag${sh.now?' live':''}">${sh.now?'CANLI':'SONRAKI'}</span>
-      <div class="epg-time">${fmt(sh.s)} – ${fmt(sh.e)}</div>
-      <div class="epg-show">${sh.title}</div>
-      <div class="epg-desc">${sh.desc}</div>
-      ${sh.now?`<div class="epg-prog-wrap"><div class="epg-prog-bar" style="width:${prog.toFixed(1)}%"></div></div>`:''}
-    </div>`;
-  }).join('');
-  document.getElementById('ov-epg').textContent = `${shows[1].title} • şu an yayında`;
+function togglePlay(){
+  const v=document.getElementById('main-video'),b=document.getElementById('pp-btn');
+  if(v.paused){v.play();b.textContent='⏸';}else{v.pause();b.textContent='▶';}
 }
 
 // ══════════════════════════════════════════
 // FAVORITES
 // ══════════════════════════════════════════
-function toggleFav(e, uid) {
+function toggleFav(e,uid){
   e.stopPropagation();
-  favorites.has(uid) ? favorites.delete(uid) : favorites.add(uid);
-  saveFav(); renderHome(); renderFavs();
+  favorites.has(uid)?favorites.delete(uid):favorites.add(uid);
+  saveFav();renderLive();renderVod();renderSer();renderFavs();
 }
-
-function renderFavs() {
-  const cont = document.getElementById('fav-list');
-  const list = channels.filter(c => favorites.has(c.uid));
-  cont.innerHTML = list.length
-    ? list.map((ch, i) => chHTML(ch, i)).join('')
-    : `<div class="empty-state"><div class="empty-icon">🤍</div><div class="empty-title">Favori Yok</div><div class="empty-sub">Kanal listesinden ❤️ ile ekle</div></div>`;
+function renderFavs(){
+  const all=[...liveChannels,...vodChannels,...seriesChannels];
+  const list=all.filter(c=>favorites.has(c.uid));
+  const cnt=document.getElementById('fav-count');
+  if(cnt)cnt.textContent=list.length?list.length+' içerik':'';
+  const cont=document.getElementById('fav-list');
+  if(!cont)return;
+  const getType=ch=>liveChannels.includes(ch)?'live':vodChannels.includes(ch)?'vod':'series';
+  cont.innerHTML=list.length
+    ?list.map((ch,i)=>chHTML(ch,i,getType(ch))).join('')
+    :`<div class="empty-state"><div class="empty-icon" style="font-size:52px;opacity:.3">🤍</div><div class="empty-title">Favori Yok</div><div class="empty-sub">İçeriklerin yanındaki ❤️ ile ekle</div></div>`;
 }
-
-function exportFavs() {
-  const list = channels.filter(c => favorites.has(c.uid));
-  if (!list.length) { showToast('❌ Favori kanal yok'); return; }
-  let m3u = '#EXTM3U\n';
-  list.forEach(c => { m3u += `#EXTINF:-1 tvg-logo="${c.logo}" group-title="${c.group}",${c.name}\n${c.url}\n`; });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([m3u], {type:'text/plain'}));
-  a.download = 'orion-favorites.m3u'; a.click();
-  showToast('✅ İndirildi');
+function exportFavs(){
+  const all=[...liveChannels,...vodChannels,...seriesChannels];
+  const list=all.filter(c=>favorites.has(c.uid));
+  if(!list.length){showToast('❌ Favori yok');return;}
+  let m3u='#EXTM3U\n';
+  list.forEach(c=>{m3u+=`#EXTINF:-1 tvg-logo="${c.logo}" group-title="${c.group}",${c.name}\n${c.url}\n`;});
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([m3u],{type:'text/plain'}));
+  a.download='orion-favorites.m3u';a.click();showToast('✅ İndirildi');
 }
 
 // ══════════════════════════════════════════
 // SETTINGS HELPERS
 // ══════════════════════════════════════════
-function srcTab(name, el) {
-  document.querySelectorAll('.src-tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.src-panel').forEach(p => p.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById('panel-' + name).classList.add('active');
+function srcTab(name,el){
+  document.querySelectorAll('.src-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.src-panel').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');document.getElementById('panel-'+name).classList.add('active');
 }
-
-function setXtType(type, el) {
-  xtType = type;
-  document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
-  el.classList.add('active');
+function setXtType(type,el){
+  xtType=type;
+  document.querySelectorAll('.type-btn').forEach(b=>b.classList.remove('active'));
+  if(el)el.classList.add('active');
 }
-
-function togglePass() {
-  const inp = document.getElementById('xt-pass'), eye = document.getElementById('pass-eye');
-  inp.type = inp.type === 'password' ? 'text' : 'password';
-  eye.textContent = inp.type === 'password' ? '👁' : '🙈';
+function togglePass(){
+  const inp=document.getElementById('xt-pass'),eye=document.getElementById('pass-eye');
+  inp.type=inp.type==='password'?'text':'password';
+  eye.textContent=inp.type==='password'?'👁':'🙈';
 }
-
-function clearAll() {
-  if (!confirm('Tüm kanallar ve favoriler silinsin mi?')) return;
-  channels = []; filtered = []; favorites = new Set(); currentCh = null;
-  saveCh(); saveFav(); renderHome(); renderCats(); renderFavs();
+function clearAll(){
+  if(!confirm('Tüm içerikler ve favoriler silinsin mi?'))return;
+  liveChannels=[];vodChannels=[];seriesChannels=[];
+  liveFiltered=[];vodFiltered=[];serFiltered=[];
+  favorites=new Set();currentCh=null;
+  saveLive();saveVod();saveSer();saveFav();
+  renderLive();renderVod();renderSer();renderFavs();
+  renderCats('live');renderCats('vod');renderCats('series');
   showToast('🗑 Temizlendi');
 }
 
 // ══════════════════════════════════════════
 // NAVIGATION
 // ══════════════════════════════════════════
-function goScreen(name, el) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('screen-' + name).classList.add('active');
-  if (el) el.classList.add('active');
+function goScreen(name,el){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const sc=document.getElementById('screen-'+name);if(sc)sc.classList.add('active');
+  if(el)el.classList.add('active');
 }
-
-function goSettings() {
-  goScreen('settings', document.querySelector('[data-s="settings"]'));
+function goSettings(type){
+  if(type){
+    xtType=type;
+    srcTab('xtream',document.querySelectorAll('.src-tab')[1]);
+    const btn=document.querySelector(`.type-btn[onclick*="'${type}'"]`);
+    if(btn)setXtType(type,btn);
+  }
+  goScreen('settings',document.querySelector('[data-s="settings"]'));
 }
 
 // ══════════════════════════════════════════
 // UTILS
 // ══════════════════════════════════════════
-function showToast(msg) {
-  const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2800);
+function showToast(msg){
+  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
 }
-
-function esc(s='') {
+function esc(s=''){
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
