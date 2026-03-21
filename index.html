@@ -764,68 +764,70 @@ async function doLoadM3U(){
   const name=($('mname').value||'').trim() || 'M3U Kaynak';
   if(!raw){ toast2('⚠️ URL veya M3U içeriği gir'); return; }
 
-  // pasted content
+  // Pasted M3U content
   if(raw.startsWith('#EXTM3U') || raw.includes('#EXTINF')){
     applyChannels(parseM3U(raw), name, 'm3u', {});
     return;
   }
   if(!raw.startsWith('http')){ toast2('⚠️ http:// ile başlamalı'); return; }
 
-  // detect xtream-style URL
+  // URLs with username+password → extract and use Xtream JSON API (avoids CORS)
   try{
     const u=new URL(raw);
     const user=u.searchParams.get('username');
     const pass=u.searchParams.get('password');
     if(user && pass){
-      // get.php URL → fetch directly as M3U (fastest, no JSON API overhead)
-      if(raw.includes('/get.php') || u.searchParams.get('type')){
-        // Direct M3U download URL — fetch it
-        setBtn('mbtn','⏳ Yükleniyor…',true);
-        try{
-          const txt=await sfetch(raw, 25000);
-          if(txt.includes('#EXTINF') || txt.includes('#EXTM3U')){
-            applyChannels(parseM3U(txt), name, 'm3u', {url:raw});
-          } else {
-            // Try adding output=ts if not already there
-            const altUrl=raw.includes('output=')?raw:raw+'&output=ts';
-            const txt2=await sfetch(altUrl, 20000);
-            if(txt2.includes('#EXTINF') || txt2.includes('#EXTM3U')){
-              applyChannels(parseM3U(txt2), name, 'm3u', {url:altUrl});
-            } else {
-              toast2('❌ M3U alınamadı — Dosya yöntemi dene');
-            }
-          }
-        }catch(e){
-          toast2('❌ Yüklenemedi — CORS engeli. Dosya yöntemi dene.');
-        }finally{
-          setBtn('mbtn','Yükle',false);
-        }
-        return;
-      }
-      // player_api style → use Xtream JSON
-      $('xhost').value=u.origin;
+      const cleanHost=`${u.protocol}//${u.hostname}${u.port?':'+u.port:''}`;
+      $('xhost').value=cleanHost;
       $('xuser').value=user;
       $('xpass').value=pass;
-      stab('xtream', document.querySelectorAll('.stab')[1]);
-      toast2('💡 Xtream bilgileri aktarıldı…');
-      setTimeout(doLoadXtream, 300);
+      $('xname').value=name;
+      // Run Xtream loader (handles JSON API + M3U fallback)
+      await doLoadXtream();
       return;
     }
   }catch(e){}
 
+  // Generic M3U URL — try proxies
   setBtn('mbtn','⏳ Yükleniyor…',true);
+  let loaded=false;
   try{
-    const txt=await sfetch(raw);
-    if(txt.includes('#EXTINF') || txt.includes('#EXTM3U')){
+    const txt=await sfetch(raw, 30000);
+    if(txt && (txt.includes('#EXTINF') || txt.includes('#EXTM3U'))){
       applyChannels(parseM3U(txt), name, 'm3u', {url:raw});
-    } else {
-      toast2('❌ M3U bulunamadı — Dosya yöntemini dene');
+      loaded=true;
     }
-  }catch(e){
-    toast2('❌ Yüklenemedi — CORS engeli. Dosya yöntemi dene.');
-  }finally{
-    setBtn('mbtn','Yükle',false);
-  }
+  }catch(e){}
+  setBtn('mbtn','Yükle',false);
+
+  if(!loaded) showDownloadHelper(raw, name);
+}
+
+function showDownloadHelper(url, name){
+  $('dl-helper')?.remove();
+  // Check if there are credentials in the URL to offer Xtream tab
+  let xtreamBtn='';
+  try{
+    const u=new URL(url);
+    const user=u.searchParams.get('username');
+    const pass=u.searchParams.get('password');
+    if(user&&pass){
+      const cleanHost=`${u.protocol}//${u.hostname}${u.port?':'+u.port:''}`;
+      xtreamBtn=`<div style="margin-bottom:6px"><b>2. Xtream sekmesi:</b> Bilgiler otomatik dolduruldu.</div>
+        <button onclick="$('xhost').value='${cleanHost}';$('xuser').value='${user}';$('xpass').value='${pass}';$('xname').value='${esc(name)}';stab('xtream',document.querySelectorAll('.stab')[1]);$('dl-helper')?.remove();" style="width:100%;padding:9px;border-radius:10px;border:1px solid rgba(0,200,255,.25);background:rgba(0,200,255,.08);color:#00c8ff;font-size:12px;font-weight:600;cursor:pointer;margin-bottom:8px;font-family:inherit">📡 Xtream Sekmesine Geç</button>`;
+    }
+  }catch(e){}
+
+  const div=document.createElement('div');
+  div.id='dl-helper';
+  div.style.cssText='margin-top:10px;padding:13px 14px;border-radius:14px;background:rgba(255,214,10,.07);border:1px solid rgba(255,214,10,.22);font-size:12px;color:rgba(255,255,255,.82);line-height:1.65;';
+  div.innerHTML=`<div style="font-weight:700;color:#ffd60a;margin-bottom:8px">⚠️ CORS engeli — Şu yöntemleri dene:</div>
+    <div style="margin-bottom:6px"><b>1. Dosya yöntemi (önerilen):</b></div>
+    <div style="margin-bottom:6px;color:rgba(255,255,255,.65)">Aşağıdaki butona bas → Safari'de dosya inecek → <b>Dosya</b> sekmesinden yükle</div>
+    <button onclick="window.open('${url}','_blank')" style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,214,10,.3);background:rgba(255,214,10,.14);color:#ffd60a;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:10px;font-family:inherit">🔗 M3U Dosyasını İndir (Safari'de Aç)</button>
+    ${xtreamBtn}
+    <div style="color:rgba(255,255,255,.55);font-size:11px">Not: İndirilen .m3u dosyasını Dosya sekmesinden yükleyebilirsin.</div>`;
+  $('mbtn').after(div);
 }
 
 /* ══════════════════════════════════════════════
@@ -843,72 +845,65 @@ async function doLoadXtream(){
   if(!host.startsWith('http')){ toast2('⚠️ http:// ile başlamalı'); return; }
 
   setBtn('xbtn','⏳ Bağlanıyor…',true);
+  toast2('⏳ Bağlanıyor…');
 
-  const e=encodeURIComponent;
-  const base=`${host}/player_api.php?username=${e(user)}&password=${e(pass)}`;
+  const enc=encodeURIComponent;
+  const base=`${host}/player_api.php?username=${enc(user)}&password=${enc(pass)}`;
 
-  // auth check
-  try{
-    const at=await sfetch(base, 8000);
-    const a=JSON.parse(at);
-    if(a?.user_info?.auth===0){
-      toast2('❌ Kullanıcı adı veya şifre hatalı');
-      setBtn('xbtn','Bağlan ve Yükle',false);
-      return;
-    }
-  }catch(ex){ /* ignore, continue */ }
-
-  // get live streams + categories
+  // 1. Try JSON API (no CORS issue — same origin stream URLs)
   try{
     toast2('⏳ Kanallar yükleniyor…');
-    const [stxt, ctxt]=await Promise.all([
-      sfetch(`${base}&action=get_live_streams`, 20000),
-      sfetch(`${base}&action=get_live_categories`, 10000).catch(()=>'[]'),
+    const [stxt, ctxt]=await Promise.allSettled([
+      sfetch(`${base}&action=get_live_streams`, 25000),
+      sfetch(`${base}&action=get_live_categories`, 15000),
     ]);
 
-    const streams=JSON.parse(stxt);
-    if(!Array.isArray(streams) || !streams.length){
-      throw new Error('empty_streams');
+    if(stxt.status==='fulfilled'){
+      const streams=JSON.parse(stxt.value);
+      if(Array.isArray(streams) && streams.length){
+        let cats=[];
+        try{ if(ctxt.status==='fulfilled') cats=JSON.parse(ctxt.value); }catch(e){}
+        const cn={};
+        cats.forEach(c=>{ cn[c.category_id]=c.category_name; });
+
+        const result=streams.map(item=>{
+          const sid=item.stream_id||'';
+          const url=`${host}/live/${enc(user)}/${enc(pass)}/${sid}.ts`;
+          return{
+            name:  item.name||'?',
+            group: cn[item.category_id]||item.category_name||'Genel',
+            logo:  item.stream_icon||'',
+            url,
+            uid:   mkuid(item.name||'', String(sid)),
+          };
+        });
+
+        applyChannels(result, name, 'xtream', {host,user,pass});
+        setBtn('xbtn','Bağlan ve Yükle',false);
+        return;
+      }
     }
+  }catch(ex){}
 
-    let cats=[];
-    try{ cats=JSON.parse(ctxt); }catch(ex){}
-    const cn={};
-    cats.forEach(c=>{ cn[c.category_id]=c.category_name; });
-
-    const result=streams.map(item=>{
-      const sid=item.stream_id||'';
-      const url=`${host}/live/${e(user)}/${e(pass)}/${sid}.ts`;
-      return {
-        name:  item.name||'?',
-        group: cn[item.category_id]||item.category_name||'Genel',
-        logo:  item.stream_icon||'',
-        url,
-        uid:   mkuid(item.name||'', String(sid)),
-      };
-    });
-
-    applyChannels(result, name, 'xtream', {host,user,pass});
-    setBtn('xbtn','Bağlan ve Yükle',false);
-    return;
-
-  }catch(ex){
-    // fallback: try M3U endpoint
-  }
-
-  // M3U fallback
-  const m3uUrl=`${host}/get.php?username=${e(user)}&password=${e(pass)}&type=m3u_plus&output=ts`;
+  // 2. Fallback: M3U get.php endpoint
+  toast2('⏳ M3U yöntemi deneniyor…');
+  const m3uUrl=`${host}/get.php?username=${enc(user)}&password=${enc(pass)}&type=m3u_plus&output=ts`;
   try{
-    const txt=await sfetch(m3uUrl, 20000);
-    if(txt.includes('#EXTINF') || txt.includes('#EXTM3U')){
+    const txt=await sfetch(m3uUrl, 30000);
+    if(txt && (txt.includes('#EXTINF') || txt.includes('#EXTM3U'))){
       applyChannels(parseM3U(txt), name, 'xtream', {host,user,pass});
       setBtn('xbtn','Bağlan ve Yükle',false);
       return;
     }
   }catch(ex){}
 
-  toast2('❌ Bağlanamadı. Sunucu adresini ve bilgileri kontrol et.');
+  // 3. All failed — show download helper pointing to M3U URL
+  toast2('❌ Bağlanamadı');
   setBtn('xbtn','Bağlan ve Yükle',false);
+  // Show download helper in M3U tab
+  stab('m3u', document.querySelectorAll('.stab')[0]);
+  $('murl').value='';
+  showDownloadHelper(m3uUrl, name);
 }
 
 function setBtn(id,txt,dis){
