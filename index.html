@@ -2,7 +2,9 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-touch-fullscreen" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="OrionTV">
@@ -20,9 +22,9 @@
   --sh:rgba(0,0,0,.55);
   --sat:env(safe-area-inset-top,44px); --sab:env(safe-area-inset-bottom,34px);
 }
-*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
 *{scrollbar-width:none;} *::-webkit-scrollbar{display:none;}
-html,body{height:100%;width:100%;overflow:hidden;background:#08001a;color:var(--t1);font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;-webkit-font-smoothing:antialiased;}
+html,body{height:100%;width:100%;overflow:hidden;background:#08001a;color:var(--t1);font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%;text-size-adjust:100%;}
 
 /* MESH */
 #mesh{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
@@ -40,14 +42,14 @@ html,body{height:100%;width:100%;overflow:hidden;background:#08001a;color:var(--
 #app{position:relative;z-index:1;display:flex;flex-direction:column;height:100vh;height:100dvh;}
 
 /* TOPBAR */
-#topbar{padding:calc(var(--sat)+10px) 16px 10px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
-.logo{display:flex;align-items:center;gap:9px;}
-.logo-icon{width:32px;height:32px;border-radius:8px;overflow:hidden;flex-shrink:0;box-shadow:0 0 12px rgba(0,200,255,.4),0 0 24px rgba(191,95,255,.25);}
+#topbar{padding:calc(var(--sat)+8px) 14px 10px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:8px;min-width:0;}
+.logo{display:flex;align-items:center;gap:8px;min-width:0;flex:1;}
+.logo-icon{width:30px;height:30px;border-radius:8px;overflow:hidden;flex-shrink:0;box-shadow:0 0 12px rgba(0,200,255,.4),0 0 24px rgba(191,95,255,.25);}
 .logo-icon img{width:100%;height:100%;object-fit:cover;display:block;}
-.logo-text{font-size:20px;font-weight:800;letter-spacing:-.4px;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-.hdr-btns{display:flex;gap:8px;}
-.ico-btn{width:36px;height:36px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.16s;background:var(--gb);border:1px solid var(--gbr);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);}
-.ico-btn svg{width:18px;height:18px;fill:none;stroke:var(--t2);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:.16s;}
+.logo-text{font-size:18px;font-weight:800;letter-spacing:-.3px;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;white-space:nowrap;}
+.hdr-btns{display:flex;gap:6px;flex-shrink:0;}
+.ico-btn{width:34px;height:34px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.16s;background:var(--gb);border:1px solid var(--gbr);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);}
+.ico-btn svg{width:17px;height:17px;fill:none;stroke:var(--t2);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:.16s;}
 .ico-btn:active{transform:scale(.82);}
 .ico-btn:active svg{stroke:var(--t1);}
 
@@ -212,7 +214,7 @@ html,body{height:100%;width:100%;overflow:hidden;background:#08001a;color:var(--
 
 /* SETTINGS */
 #screen-settings{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 14px calc(100px + var(--sab));}
-.settings-ttl{font-size:24px;font-weight:800;letter-spacing:-.5px;padding:6px 2px 16px;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.settings-ttl{font-size:22px;font-weight:800;letter-spacing:-.4px;padding:6px 2px 14px;background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
 
 .src-tabs{display:flex;gap:6px;margin-bottom:12px;}
 .src-tab{flex:1;padding:10px 4px;border-radius:13px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:var(--t3);font-size:11px;font-weight:600;cursor:pointer;transition:.16s;text-align:center;}
@@ -576,12 +578,26 @@ let seekDragging=false, uiTimer=null;
 // STORAGE
 // ═══════════════════════════════════════════════
 function loadStor(){
-  try{const d=localStorage.getItem('orion_db2');if(d){const p=JSON.parse(d);DB={...DB,...p};}}catch(e){}
+  try{const d=localStorage.getItem('orion_db2');if(d){const p=JSON.parse(d);DB={live:p.live||[],vod:p.vod||[],series:p.series||[]};}}catch(e){console.warn('loadStor DB failed',e);}
   try{const f=localStorage.getItem('orion_fav');if(f)favs=new Set(JSON.parse(f));}catch(e){}
   try{const s=localStorage.getItem('orion_src');if(s)sources=JSON.parse(s);}catch(e){}
   try{const p=localStorage.getItem('orion_prog');if(p)progress=JSON.parse(p);}catch(e){}
 }
-function saveDB()  {try{localStorage.setItem('orion_db2', JSON.stringify(DB));}catch(e){}}
+function saveDB()  {
+  // Defer to avoid blocking UI thread on large datasets
+  clearTimeout(saveDB._t);
+  saveDB._t = setTimeout(()=>{
+    try{
+      // Only save first 2000 per type to avoid localStorage quota issues
+      const trimmed = {
+        live: DB.live.slice(0,5000),
+        vod:  DB.vod.slice(0,5000),
+        series: DB.series.slice(0,5000)
+      };
+      localStorage.setItem('orion_db2', JSON.stringify(trimmed));
+    }catch(e){console.warn('saveDB failed',e);}
+  }, 500);
+}
 function saveFav() {try{localStorage.setItem('orion_fav', JSON.stringify([...favs]));}catch(e){}}
 function saveSrc() {try{localStorage.setItem('orion_src', JSON.stringify(sources));}catch(e){}}
 function saveProg(){try{localStorage.setItem('orion_prog',JSON.stringify(progress));}catch(e){}}
@@ -740,25 +756,28 @@ async function loadXtream(){
 // ═══════════════════════════════════════════════
 function applyParsed(parsed, name, type, cfg){
   const srcId = uid(name, JSON.stringify(cfg));
-  // Remove existing source with same id
   sources = sources.filter(s=>s.id!==srcId);
   sources.push({id:srcId,name,type,...cfg});
   saveSrc();
 
-  // Merge into DB (replace if same source)
-  // Simple: replace all (user can add multiple sources)
-  if(parsed.live.length) DB.live=[...DB.live.filter(c=>!c._src||c._src!==srcId), ...parsed.live.map(c=>({...c,_src:srcId}))];
-  if(parsed.vod.length)  DB.vod =[...DB.vod.filter(c=>!c._src||c._src!==srcId),  ...parsed.vod.map(c=>({...c,_src:srcId}))];
-  if(parsed.series.length)DB.series=[...DB.series.filter(c=>!c._src||c._src!==srcId),...parsed.series.map(c=>({...c,_src:srcId}))];
-  saveDB();
+  // Merge — tag each item with source
+  if(parsed.live.length)   DB.live   = [...DB.live.filter(c=>c._src!==srcId),   ...parsed.live.map(c=>({...c,_src:srcId}))];
+  if(parsed.vod.length)    DB.vod    = [...DB.vod.filter(c=>c._src!==srcId),    ...parsed.vod.map(c=>({...c,_src:srcId}))];
+  if(parsed.series.length) DB.series = [...DB.series.filter(c=>c._src!==srcId), ...parsed.series.map(c=>({...c,_src:srcId}))];
 
-  const total=parsed.live.length+parsed.vod.length+parsed.series.length;
-  toast(`✅ ${total} içerik yüklendi (Canlı:${parsed.live.length} Film:${parsed.vod.length} Dizi:${parsed.series.length})`);
-  renderAll(); renderSources();
-  // Go to whichever has content
-  if(parsed.live.length) goScreen('live',qs('[data-s=live]'));
-  else if(parsed.vod.length) goScreen('vod',qs('[data-s=vod]'));
-  else if(parsed.series.length) goScreen('series',qs('[data-s=series]'));
+  const total = parsed.live.length + parsed.vod.length + parsed.series.length;
+  toast(`✅ ${total} içerik (Canlı:${parsed.live.length} Film:${parsed.vod.length} Dizi:${parsed.series.length})`);
+
+  // Save async — don't block UI
+  saveDB(); saveSrc();
+
+  // Render on next frame to keep UI responsive
+  requestAnimationFrame(()=>{
+    renderAll(); renderSources();
+    if(parsed.live.length)        goScreen('live',qs('[data-s=live]'));
+    else if(parsed.vod.length)    goScreen('vod',qs('[data-s=vod]'));
+    else if(parsed.series.length) goScreen('series',qs('[data-s=series]'));
+  });
 }
 
 function setBtn(id,txt,dis){const b=qs('#'+id);if(!b)return;b.textContent=txt;b.disabled=dis;b.style.opacity=dis?'.5':'1';}
@@ -774,8 +793,19 @@ document.getElementById('file-input').addEventListener('change',function(e){
 // RENDER
 // ═══════════════════════════════════════════════
 function renderAll(){
-  ['live','vod','series'].forEach(t=>{renderType(t);renderCats(t);});
+  // Only render what's currently visible + update dots/favs
+  const active = qs('.screen.active');
+  const activeId = active?.id || 'screen-live';
+  const activeType = activeId.replace('screen-','');
+
+  if(['live','vod','series'].includes(activeType)){
+    renderType(activeType); renderCats(activeType);
+  }
   renderFavs(); renderDots();
+}
+
+function renderScreen(type){
+  renderType(type); renderCats(type);
 }
 
 function getDisp(type){
@@ -1256,15 +1286,29 @@ function goScreen(name,el){
   qsa('.ni').forEach(n=>n.classList.remove('on'));
   const sc=qs('#screen-'+name); if(sc)sc.classList.add('active');
   if(el)el.classList.add('on');
+  // Render the newly visible screen
+  if(['live','vod','series'].includes(name)){
+    requestAnimationFrame(()=>renderScreen(name));
+  } else if(name==='fav'){
+    requestAnimationFrame(()=>renderFavs());
+  } else if(name==='settings'){
+    requestAnimationFrame(()=>renderSources());
+  }
 }
 
 // ═══════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════
 function init(){
-  loadStor(); renderAll(); renderSources();
+  loadStor(); renderDots(); renderSources();
+  // Render only the active/visible screen
+  renderScreen('live');
   // series search
   const sq=qs('#ser-q'); if(sq) sq.addEventListener('input',()=>renderSeries());
+  // Register service worker for PWA
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  }
 }
 init();
 </script>
