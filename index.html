@@ -313,7 +313,32 @@ html,body{height:100%;width:100%;overflow:hidden;
   background:var(--red);display:none;}
 .ni-play-dot.v{display:block;}
 
-/* ─── TOAST ─── */
+/* source selector button */
+.src-sel-btn{display:flex;align-items:center;gap:5px;padding:6px 10px;
+  border-radius:18px;border:none;cursor:pointer;flex-shrink:0;
+  color:var(--t1);font-size:12px;font-weight:600;max-width:45vw;}
+.src-sel-btn span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:32vw;}
+
+/* source dropdown */
+#srcMenu{position:absolute;top:calc(var(--sat) + 52px);right:12px;z-index:200;
+  min-width:200px;border-radius:16px;overflow:hidden;
+  background:rgba(12,4,28,.96);border:1px solid rgba(255,255,255,.15);
+  backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);
+  box-shadow:0 8px 28px rgba(0,0,0,.6);display:none;}
+#srcMenu.open{display:block;}
+.src-menu-item{display:flex;align-items:center;gap:10px;padding:11px 14px;
+  cursor:pointer;transition:.13s;border-bottom:1px solid rgba(255,255,255,.07);
+  font-size:13px;}
+.src-menu-item:last-child{border-bottom:none;}
+.src-menu-item:active{background:rgba(255,255,255,.07);}
+.src-menu-item.sel{color:#00c8ff;}
+.src-menu-check{width:16px;height:16px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.src-menu-info{flex:1;min-width:0;}
+.src-menu-name{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.src-menu-sub{font-size:10px;color:var(--t3);margin-top:1px;}
+/* backdrop to close menu */
+#srcMenuBg{position:fixed;inset:0;z-index:199;display:none;}
+#srcMenuBg.open{display:block;}
 #toast{position:fixed;bottom:calc(96px + var(--sab));left:50%;
   transform:translateX(-50%) translateY(10px) scale(.93);
   padding:8px 16px;border-radius:16px;
@@ -339,7 +364,18 @@ html,body{height:100%;width:100%;overflow:hidden;
   <div id="topbar">
     <div class="logo-img"><img src="app_icon.png" alt="O"></div>
     <span class="logo-name">OrionTV</span>
+    <div style="flex:1"></div>
+    <!-- Source selector -->
+    <button class="src-sel-btn g" id="srcSelBtn" onclick="toggleSrcMenu()" style="display:none">
+      <span id="srcSelName">Kaynak</span>
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6,9 12,15 18,9"/></svg>
+    </button>
   </div>
+
+  <!-- SOURCE MENU BACKDROP -->
+  <div id="srcMenuBg" onclick="closeSrcMenu()"></div>
+  <!-- SOURCE DROPDOWN -->
+  <div id="srcMenu"></div>
 
   <!-- MINI PLAYER -->
   <div id="mplayer">
@@ -595,42 +631,70 @@ function toast2(msg, dur=2600){
 /* ══════════════════════════════════════════════
    STATE
 ══════════════════════════════════════════════ */
-let channels = [];   // all live channels
-let filtered  = [];  // after search/cat filter
+// srcDB: { [srcId]: { channels:[], name:'' } }
+let srcDB     = {};
+let srcs      = [];   // [{id,name,type,...}]
+let activeSrc = null; // currently selected source id (null = all)
 let favs      = new Set();
-let srcs      = [];  // [{id,name,type,host?,user?,pass?,url?}]
 let activeCat = 'Tümü';
 
-let curCh   = null;
-let curIdx  = -1;
-let seeking = false;
+let curCh  = null;
+let curIdx = -1;
+let seeking= false;
+
+// computed from activeSrc
+function getChannels(){
+  if(!activeSrc) return Object.values(srcDB).flatMap(s=>s.channels);
+  return srcDB[activeSrc]?.channels || [];
+}
+let filtered = [];
 
 /* ══════════════════════════════════════════════
-   STORAGE  (deferred write to avoid freeze)
+   STORAGE
 ══════════════════════════════════════════════ */
 function loadStorage(){
-  try{ const d=localStorage.getItem('otv_ch');
-       if(d) channels=JSON.parse(d); }catch(e){}
-  try{ const f=localStorage.getItem('otv_fav');
-       if(f) favs=new Set(JSON.parse(f)); }catch(e){}
-  try{ const s=localStorage.getItem('otv_src');
-       if(s) srcs=JSON.parse(s); }catch(e){}
+  try{ const d=localStorage.getItem('otv_db2'); if(d) srcDB=JSON.parse(d); }catch(e){}
+  try{ const f=localStorage.getItem('otv_fav'); if(f) favs=new Set(JSON.parse(f)); }catch(e){}
+  try{ const s=localStorage.getItem('otv_src'); if(s) srcs=JSON.parse(s); }catch(e){}
+  // migrate old flat channels
+  try{
+    const old=localStorage.getItem('otv_ch');
+    if(old && !Object.keys(srcDB).length){
+      const ch=JSON.parse(old);
+      if(ch.length){
+        const sid='migrated';
+        srcDB[sid]={channels:ch};
+        srcs=[{id:sid,name:'Eski Kaynak',type:'m3u'}];
+        activeSrc=sid;
+        saveDB(); saveSrc();
+        localStorage.removeItem('otv_ch');
+      }
+    }
+  }catch(e){}
 }
 
-let _saveCht;
-function saveCh(){
-  clearTimeout(_saveCht);
-  _saveCht=setTimeout(()=>{
-    try{
-      // keep max 8000 to avoid quota
-      localStorage.setItem('otv_ch', JSON.stringify(channels.slice(0,8000)));
-    }catch(e){
-      try{ localStorage.setItem('otv_ch', JSON.stringify(channels.slice(0,2000))); }catch(e2){}
+let _dbT;
+function saveDB(){
+  clearTimeout(_dbT);
+  _dbT=setTimeout(()=>{
+    // trim each source to max 6000 channels
+    const trimmed={};
+    Object.entries(srcDB).forEach(([id,s])=>{
+      trimmed[id]={channels:(s.channels||[]).slice(0,6000)};
+    });
+    try{ localStorage.setItem('otv_db2',JSON.stringify(trimmed)); }
+    catch(e){
+      // quota: trim harder
+      const t2={};
+      Object.entries(srcDB).forEach(([id,s])=>{
+        t2[id]={channels:(s.channels||[]).slice(0,1000)};
+      });
+      try{ localStorage.setItem('otv_db2',JSON.stringify(t2)); }catch(e2){}
     }
-  }, 600);
+  },500);
 }
-function saveFav(){ try{ localStorage.setItem('otv_fav', JSON.stringify([...favs])); }catch(e){} }
-function saveSrc(){ try{ localStorage.setItem('otv_src', JSON.stringify(srcs)); }catch(e){} }
+function saveFav(){ try{ localStorage.setItem('otv_fav',JSON.stringify([...favs])); }catch(e){} }
+function saveSrc(){ try{ localStorage.setItem('otv_src',JSON.stringify(srcs)); }catch(e){} }
 
 /* ══════════════════════════════════════════════
    M3U PARSER  — only keeps live channels
@@ -844,21 +908,21 @@ function applyChannels(list, name, type, cfg){
   }
   const sid=mkuid(name, JSON.stringify(cfg));
 
-  // save source entry
-  srcs=srcs.filter(s=>s.id!==sid);
-  srcs.push({id:sid,name,type,...cfg});
-  saveSrc();
+  // Store per-source
+  srcDB[sid]={channels: list};
 
-  // merge — remove old entries from same source, add new
-  const tagged=list.map(c=>({...c,_src:sid}));
-  channels=[...channels.filter(c=>c._src!==sid), ...tagged];
-  saveCh();
+  // Update source registry
+  srcs=srcs.filter(s=>s.id!==sid);
+  srcs.push({id:sid, name, type, ...cfg});
+  saveDB(); saveSrc();
+
+  // Switch to this source
+  activeSrc=sid;
+  activeCat='Tümü';
 
   toast2(`✅ ${list.length} kanal yüklendi`);
-
-  // reset filter
-  activeCat='Tümü';
   requestAnimationFrame(()=>{
+    renderSrcSelector();
     renderLive();
     renderSrcList();
     goNav('live', qs('[data-s=live]'));
@@ -866,27 +930,78 @@ function applyChannels(list, name, type, cfg){
 }
 
 /* ══════════════════════════════════════════════
+   SOURCE SELECTOR (topbar dropdown)
+══════════════════════════════════════════════ */
+function renderSrcSelector(){
+  const btn=$('srcSelBtn');
+  if(!srcs.length){ btn.style.display='none'; return; }
+  btn.style.display='flex';
+  const cur=srcs.find(s=>s.id===activeSrc);
+  $('srcSelName').textContent = cur ? cur.name : 'Tüm Kaynaklar';
+}
+
+function toggleSrcMenu(){
+  const menu=$('srcMenu'), bg=$('srcMenuBg');
+  if(menu.classList.contains('open')){ closeSrcMenu(); return; }
+
+  // Build menu items
+  let html='';
+  // "All sources" option if multiple
+  if(srcs.length>1){
+    const sel = activeSrc===null;
+    html+=`<div class="src-menu-item${sel?' sel':''}" onclick="selectSrc(null)">
+      <div class="src-menu-check">${sel?'✓':''}</div>
+      <div class="src-menu-info">
+        <div class="src-menu-name">Tüm Kaynaklar</div>
+        <div class="src-menu-sub">${Object.values(srcDB).reduce((a,s)=>a+(s.channels?.length||0),0)} kanal</div>
+      </div>
+    </div>`;
+  }
+  srcs.forEach(s=>{
+    const sel=activeSrc===s.id;
+    const cnt=srcDB[s.id]?.channels?.length||0;
+    const sub=s.type==='xtream' ? (s.host||'') : (s.url||'Dosya');
+    html+=`<div class="src-menu-item${sel?' sel':''}" onclick="selectSrc('${s.id}')">
+      <div class="src-menu-check">${sel?'✓':''}</div>
+      <div class="src-menu-info">
+        <div class="src-menu-name">${esc(s.name)}</div>
+        <div class="src-menu-sub">${cnt} kanal${sub?' · '+esc(sub.substring(0,30)):''}</div>
+      </div>
+    </div>`;
+  });
+  $('srcMenu').innerHTML=html;
+  menu.classList.add('open'); bg.classList.add('open');
+}
+
+function closeSrcMenu(){
+  $('srcMenu').classList.remove('open');
+  $('srcMenuBg').classList.remove('open');
+}
+
+function selectSrc(id){
+  activeSrc=id; activeCat='Tümü'; closeSrcMenu();
+  renderSrcSelector(); renderLive();
+}
+
+/* ══════════════════════════════════════════════
    RENDER LIVE
 ══════════════════════════════════════════════ */
 function renderLive(){
-  const listEl=$('llist');
-  const emptyEl=$('lempty');
-  const cntEl=$('lcnt');
-  const catsEl=$('lcats');
+  const listEl=$('llist'), emptyEl=$('lempty');
+  const cntEl=$('lcnt'), catsEl=$('lcats');
   if(!listEl) return;
 
-  // build category list
-  const cats=['Tümü'];
-  const seen=new Set();
-  channels.forEach(c=>{
-    if(c.group && !seen.has(c.group)){ seen.add(c.group); cats.push(c.group); }
-  });
+  const channels=getChannels();
+
+  // Categories
+  const cats=['Tümü']; const seen=new Set();
+  channels.forEach(c=>{ if(c.group&&!seen.has(c.group)){seen.add(c.group);cats.push(c.group);} });
   catsEl.innerHTML=cats.map(c=>
     `<div class="pill${c===activeCat?' on':''}" onclick="setCat('${c.replace(/'/g,"\\'")}')">
       ${esc(c)}</div>`
   ).join('');
 
-  // apply current filter
+  // Filter
   const q=($('lq')?.value||'').toLowerCase().trim();
   let list=channels;
   if(activeCat!=='Tümü') list=list.filter(c=>c.group===activeCat);
@@ -894,20 +1009,14 @@ function renderLive(){
   filtered=list;
 
   if(!channels.length){
-    listEl.innerHTML='';
-    listEl.parentElement.style.display='none';
-    emptyEl.style.display='';
-    cntEl.textContent='';
-    return;
+    listEl.innerHTML=''; listEl.parentElement.style.display='none';
+    emptyEl.style.display=''; cntEl.textContent=''; return;
   }
-
-  listEl.parentElement.style.display='';
-  emptyEl.style.display='none';
+  listEl.parentElement.style.display=''; emptyEl.style.display='none';
 
   if(list.length){
     cntEl.textContent=list.length+' kanal';
-    // render in chunks to avoid freeze
-    renderChunk(list, listEl, 0, 50);
+    renderChunk(list, listEl, 0, 60);
   } else {
     cntEl.textContent='0 sonuç';
     listEl.innerHTML=`<div class="empty" style="flex:none;padding:36px 16px">
@@ -966,9 +1075,16 @@ function doFilter(){
 /* ══════════════════════════════════════════════
    PLAY
 ══════════════════════════════════════════════ */
+let _playVersion=0; // increments on each playCh call — stale callbacks ignored
+
 function playCh(uid){
+  const channels=getChannels();
   const ch=channels.find(c=>c.uid===uid);
   if(!ch) return;
+
+  // cancel any pending play attempt
+  _playVersion++;
+  const myVersion=_playVersion;
 
   curCh=ch;
   curIdx=filtered.findIndex(c=>c.uid===uid);
@@ -976,65 +1092,58 @@ function playCh(uid){
 
   const v=$('vid');
 
-  // Stop current cleanly
+  // Clear previous error state immediately
   v.pause();
   v.removeAttribute('src');
-  v.load(); // reset internal state
+  // Don't call v.load() here — it triggers 'emptied' which is fine but adds latency
 
-  // Update info
+  // Update info bar
   $('mpname').textContent=ch.name;
   $('mpgrp').textContent=ch.group;
-  $('mpprog').style.width='0';
-  $('mpbuf').style.width='0';
-  $('mptime').textContent='';
 
-  // Open mini player first (needs to be visible for iOS autoplay)
+  // Open player (must be visible before play() for iOS)
   $('mplayer').classList.add('open');
   $('pdot').classList.add('v');
 
-  // Set new source — do NOT call v.load() again, let play() do it
+  // Set src and play — no v.load() call needed, browser does it
   v.src=ch.url;
-
-  // iOS: play() directly after setting src (within user gesture context)
-  const playPromise=v.play();
-  if(playPromise !== undefined){
-    playPromise
-      .then(()=>{ setIcon(true); })
-      .catch(err=>{
-        // AbortError is normal when switching channels quickly — ignore
-        if(err.name==='AbortError') return;
-        // NotAllowedError = autoplay blocked, show play button
-        if(err.name==='NotAllowedError'){
-          setIcon(false);
-          toast2('▶ Oynatmak için play tuşuna bas');
-          return;
-        }
-        // Other errors — stream might need .m3u8 extension
-        setIcon(false);
-        // Try with .m3u8 if url ends in .ts
-        if(ch.url.endsWith('.ts')){
-          const m3uUrl=ch.url.replace(/\.ts$/,'.m3u8');
-          v.src=m3uUrl;
-          v.play().then(()=>setIcon(true)).catch(()=>{
-            toast2('❌ Oynatılamadı — bu kanal desteklenmiyor olabilir');
-          });
-        } else {
-          toast2('❌ Oynatılamadı — kanal desteklenmiyor olabilir');
-        }
+  v.play().then(()=>{
+    if(_playVersion!==myVersion) return; // user already picked another channel
+  }).catch(err=>{
+    if(_playVersion!==myVersion) return; // stale — don't show error
+    if(err.name==='AbortError') return;  // normal when switching fast
+    if(err.name==='NotAllowedError'){
+      toast2('▶ Play tuşuna bas');
+      return;
+    }
+    // Format error — try .m3u8
+    if(!v._m3uTried && ch.url.match(/\.(ts|mpeg|mpg)(\?|$)/i)){
+      v._m3uTried=true;
+      const m3u=ch.url.replace(/\.(ts|mpeg|mpg)(\?.*)?$/i,'.m3u8$2');
+      v.src=m3u;
+      v.play().then(()=>{
+        if(_playVersion===myVersion) {} // playing fine
+      }).catch(()=>{
+        if(_playVersion!==myVersion) return;
+        toast2('Bu kanal bu cihazda açılamıyor');
       });
-  }
+    } else {
+      toast2('Bu kanal şu an açılamıyor');
+    }
+  });
 
-  // Update now-playing UI without re-rendering list
+  // Reset m3u tried flag for new channel
+  v._m3uTried=false;
+
+  // Update now-playing marker
   document.querySelectorAll('.chi.now').forEach(el=>el.classList.remove('now'));
   const el=document.querySelector(`.chi[data-uid="${uid}"]`);
   if(el){
     el.classList.add('now');
     if(!el.querySelector('.pbar')){
-      const pb=document.createElement('div');
-      pb.className='pbar'; el.prepend(pb);
+      const pb=document.createElement('div'); pb.className='pbar'; el.prepend(pb);
     }
-    // scroll into view gently
-    el.scrollIntoView({block:'nearest',behavior:'smooth'});
+    el.scrollIntoView({block:'nearest', behavior:'smooth'});
   }
 }
 
@@ -1059,7 +1168,7 @@ function togglePlay(){
 function setIcon(playing){ /* native controls handles this */ }
 
 function skipCh(dir){
-  const list=filtered.length ? filtered : channels;
+  const list=filtered.length ? filtered : getChannels();
   if(!list.length) return;
   let idx=curIdx+dir;
   if(idx<0) idx=list.length-1;
@@ -1070,32 +1179,19 @@ function skipCh(dir){
 /* video events */
 (()=>{
   const v=$('vid');
-  v.addEventListener('play',  ()=>setIcon(true));
-  v.addEventListener('pause', ()=>setIcon(false));
-  v.addEventListener('ended', ()=>setIcon(false));
-  v.addEventListener('error', (e)=>{
-    const err=v.error;
-    // code 4 = MEDIA_ERR_SRC_NOT_SUPPORTED — stream format not supported by browser
-    // code 2 = MEDIA_ERR_NETWORK — network error
+  v.addEventListener('play',  ()=>{});
+  v.addEventListener('pause', ()=>{});
+  v.addEventListener('ended', ()=>{});
+  v.addEventListener('error', ()=>{
+    // Only show error if this is the current play version (not a stale attempt)
     if(!curCh) return;
-    if(err && err.code===4){
-      // .ts not supported natively — this is common; iOS supports HLS (.m3u8)
-      // Try switching to .m3u8 automatically
-      if(curCh.url.includes('.ts') && !v._triedM3u8){
-        v._triedM3u8=true;
-        const m3uUrl=curCh.url.replace(/\.ts(\?.*)?$/,(m,q)=>'.m3u8'+(q||''));
-        v.src=m3uUrl;
-        v.play().then(()=>setIcon(true)).catch(()=>toast2('❌ Bu kanal bu cihazda oynatılamıyor'));
-        return;
-      }
-    }
-    if(err && err.code===2) toast2('❌ Ağ hatası — internet bağlantını kontrol et');
-    else toast2('❌ Oynatılamadı — kanal çevrimdışı olabilir');
-    setIcon(false);
+    const err=v.error;
+    if(err && err.code===2) toast2('❌ Ağ hatası — bağlantını kontrol et');
+    else if(err && err.code===4 && !v._m3uTried) {} // handled in playCh
+    else if(err && err.code===4 && v._m3uTried) toast2('Bu kanal açılamıyor');
   });
   v.addEventListener('timeupdate', updateSeek);
-  // clear m3u8 fallback flag on each new src
-  v.addEventListener('emptied', ()=>{ v._triedM3u8=false; });
+  v.addEventListener('emptied', ()=>{ v._m3uTried=false; });
 })();
 
 function updateSeek(){
@@ -1156,25 +1252,21 @@ function toggleFav(e, uid){
 }
 
 function renderFavs(){
-  const favChs=channels.filter(c=>favs.has(c.uid));
+  const allCh=Object.values(srcDB).flatMap(s=>s.channels||[]);
+  const favChs=allCh.filter(c=>favs.has(c.uid));
   const cntEl=$('favcnt');
   if(cntEl) cntEl.textContent=favChs.length ? favChs.length+' kanal' : '';
-  const listEl=$('favlist');
-  const emptyEl=$('favempty');
-  const scroll=qs('.fscr');
+  const listEl=$('favlist'), emptyEl=$('favempty'), scroll=qs('.fscr');
   if(!listEl) return;
   if(favChs.length){
-    scroll.style.display='';
-    emptyEl.style.display='none';
+    scroll.style.display=''; emptyEl.style.display='none';
     listEl.innerHTML=favChs.map((ch,i)=>chHtml(ch,i)).join('');
-  } else {
-    scroll.style.display='none';
-    emptyEl.style.display='';
-  }
+  } else { scroll.style.display='none'; emptyEl.style.display=''; }
 }
 
 function exportFavs(){
-  const list=channels.filter(c=>favs.has(c.uid));
+  const allCh=Object.values(srcDB).flatMap(s=>s.channels||[]);
+  const list=allCh.filter(c=>favs.has(c.uid));
   if(!list.length){ toast2('❌ Favori kanal yok'); return; }
   let m3u='#EXTM3U\n';
   list.forEach(c=>{
@@ -1187,7 +1279,7 @@ function exportFavs(){
 }
 
 /* ══════════════════════════════════════════════
-   SOURCE LIST
+   SOURCE LIST + EXPORT
 ══════════════════════════════════════════════ */
 function renderSrcList(){
   const w=$('srclist'); if(!w) return;
@@ -1195,32 +1287,51 @@ function renderSrcList(){
     w.innerHTML='<div style="font-size:11px;color:var(--t3);padding:3px 2px">Henüz kaynak eklenmedi</div>';
     return;
   }
-  w.innerHTML=srcs.map(s=>`
-    <div class="srcitem">
+  w.innerHTML=srcs.map(s=>{
+    const cnt=srcDB[s.id]?.channels?.length||0;
+    const sub=s.type==='xtream'?(s.host||''):(s.url||'Dosya');
+    return`<div class="srcitem">
       <div class="sri">
-        <div class="srn">${esc(s.name)}</div>
-        <div class="srs">${s.type==='xtream' ? esc(s.host||'') : esc(s.url||'Dosya')}</div>
+        <div class="srn">${esc(s.name)} <span style="font-weight:400;color:var(--t3);font-size:10px">(${cnt} kanal)</span></div>
+        <div class="srs">${esc(sub.substring(0,40))}</div>
       </div>
-      <button class="srdel" onclick="delSrc('${s.id}')">✕</button>
-    </div>`).join('');
+      <button class="srdel" style="font-size:14px;margin-right:2px" onclick="exportSrc('${s.id}')" title="M3U olarak dışa aktar">⬇</button>
+      <button class="srdel" onclick="delSrc('${s.id}')" title="Kaldır">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function exportSrc(id){
+  const s=srcs.find(x=>x.id===id); if(!s) return;
+  const chs=srcDB[id]?.channels||[];
+  if(!chs.length){ toast2('❌ Bu kaynakta kanal yok'); return; }
+  let m3u='#EXTM3U\n';
+  chs.forEach(c=>{
+    m3u+=`#EXTINF:-1 tvg-logo="${c.logo||''}" group-title="${c.group||''}",${c.name}\n${c.url}\n`;
+  });
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([m3u],{type:'text/plain'}));
+  a.download=`${s.name.replace(/[^a-z0-9]/gi,'_')}.m3u`; a.click();
+  toast2(`✅ ${s.name} dışa aktarıldı`);
 }
 
 function delSrc(id){
   if(!confirm('Bu kaynağı kaldır?')) return;
   srcs=srcs.filter(s=>s.id!==id);
-  channels=channels.filter(c=>c._src!==id);
-  saveSrc(); saveCh();
+  delete srcDB[id];
+  if(activeSrc===id) activeSrc=srcs.length ? srcs[srcs.length-1].id : null;
+  saveDB(); saveSrc();
   activeCat='Tümü';
-  renderLive(); renderSrcList(); renderFavs();
+  renderSrcSelector(); renderLive(); renderSrcList(); renderFavs();
   toast2('🗑 Kaynak kaldırıldı');
 }
 
 function clearAll(){
   if(!confirm('Tüm kanallar ve favoriler silinsin mi?')) return;
-  channels=[]; filtered=[]; favs=new Set(); srcs=[]; curCh=null; curIdx=-1;
-  stopPlayer(); saveCh(); saveFav(); saveSrc();
-  activeCat='Tümü';
-  renderLive(); renderSrcList(); renderFavs();
+  srcDB={}; filtered=[]; favs=new Set(); srcs=[];
+  activeSrc=null; activeCat='Tümü'; curCh=null; curIdx=-1; _playVersion++;
+  stopPlayer(); saveDB(); saveFav(); saveSrc();
+  renderSrcSelector(); renderLive(); renderSrcList(); renderFavs();
   toast2('🗑 Temizlendi');
 }
 
@@ -1265,6 +1376,9 @@ function goNav(name, el){
 ══════════════════════════════════════════════ */
 function init(){
   loadStorage();
+  // Set active source to last loaded source
+  if(!activeSrc && srcs.length) activeSrc=srcs[srcs.length-1].id;
+  renderSrcSelector();
   renderLive();
   if('serviceWorker' in navigator){
     navigator.serviceWorker.register('./sw.js').catch(()=>{});
