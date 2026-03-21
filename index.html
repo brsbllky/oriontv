@@ -1099,138 +1099,189 @@ function doFilter(){
 }
 
 /* ══════════════════════════════════════════════
-   PLAY — event-driven retry for iOS
+   PLAY — hızlı, akıllı URL tespiti + buffering
 ══════════════════════════════════════════════ */
-let _playVersion = 0;
+let _pv = 0; // play version — stale callbacks ignore
 
-// Build URL list to try for a channel
-// Build all URL variants to try — handles iOS ATS (http→https), port stripping, extensions
+/* Kanal URL'sinin formatını bir kez test edip sakla */
+const _urlCache = {}; // uid → working url
+
+/* Sadece gerçekten gerekli URL'leri dene — en az sayıda */
 function urlCandidates(url){
   if(!url) return [];
 
-  // Generate https + no-port variant of a URL
-  function variants(u){
-    const list=[u];
-    // http → https
-    if(u.startsWith('http://')){
-      const https=u.replace(/^http:\/\//,'https://');
-      // also strip :80 port if present
-      const noPort=https.replace(/:80\//,'/').replace(/:80$/,'');
-      if(noPort!==https) list.push(noPort);
-      list.push(https);
-    }
-    return list;
+  // Daha önce çalışan URL varsa onu önce dene
+  const cached = _urlCache[url];
+  if(cached && cached !== url) return [cached, ...buildCandidates(url).filter(u=>u!==cached)];
+  return buildCandidates(url);
+}
+
+function buildCandidates(url){
+  const isHttp = url.startsWith('http://');
+
+  // https:// URL → direkt dene, fallback yok
+  if(!isHttp) {
+    if(/\.m3u8(\?|$)/i.test(url)) return [url];
+    if(/\.(ts|mpeg|mpg)(\?|$)/i.test(url))
+      return [url.replace(/\.(ts|mpeg|mpg)(\?.*)?$/i,'.m3u8$2'), url];
+    // uzantısız → .m3u8 önce
+    return [url+'.m3u8', url+'.ts', url];
   }
 
-  // Already .m3u8
-  if(/\.m3u8(\?|$)/i.test(url)){
-    return variants(url);
-  }
+  // http:// → https versiyonları üret (port :80 sil)
+  const https = url.replace(/^http:\/\//,'https://').replace(/:80([/?])/,'$1').replace(/:80$/,'');
 
-  // Has .ts/.mpeg extension → also try .m3u8
+  if(/\.m3u8(\?|$)/i.test(url)) return [https, url];
   if(/\.(ts|mpeg|mpg)(\?|$)/i.test(url)){
-    const m3u8=url.replace(/\.(ts|mpeg|mpg)(\?.*)?$/i,'.m3u8$2');
-    return [...variants(m3u8), ...variants(url)];
+    const m3u8 = url.replace(/\.(ts|mpeg|mpg)(\?.*)?$/i,'.m3u8$2');
+    const m3u8h = https.replace(/\.(ts|mpeg|mpg)(\?.*)?$/i,'.m3u8$2');
+    return [m3u8h, m3u8, https, url];
   }
-
-  // Xtream-style (no extension): try .m3u8 first, then .ts, then bare
-  return [
-    ...variants(url+'.m3u8'),
-    ...variants(url+'.ts'),
-    ...variants(url),
-  ];
+  // Xtream-style (uzantısız)
+  return [https+'.m3u8', url+'.m3u8', https+'.ts', url+'.ts', https, url];
 }
 
 function playCh(uid){
-  const channels=getChannels();
-  const ch=channels.find(c=>c.uid===uid);
+  const channels = getChannels();
+  const ch = channels.find(c=>c.uid===uid);
   if(!ch) return;
 
-  _playVersion++;
-  const ver=_playVersion;
+  _pv++;
+  const ver = _pv;
 
-  curCh=ch; curIdx=filtered.findIndex(c=>c.uid===uid);
-  if(curIdx===-1) curIdx=channels.indexOf(ch);
+  curCh = ch;
+  curIdx = filtered.findIndex(c=>c.uid===uid);
+  if(curIdx===-1) curIdx = channels.indexOf(ch);
 
-  const v=$('vid');
+  const v = $('vid');
 
-  // Detach old listeners
-  v.oncanplay=null; v.onerror=null;
-
+  // Temiz reset
+  v.oncanplay = null; v.onerror = null;
+  clearTimeout(v._bufTimer); clearTimeout(v._toTimer);
   v.pause();
-  v.removeAttribute('src');
+  v.src = ''; // removeAttribute yerine boş string — daha hızlı reset
+  v.load();
 
-  $('mpname').textContent=ch.name;
-  $('mpgrp').textContent=ch.group;
+  $('mpname').textContent = ch.name;
+  $('mpgrp').textContent  = ch.group;
   $('mplayer').classList.add('open');
   $('pdot').classList.add('v');
+  showBuf(true); // buffering göster
 
-  const cands=urlCandidates(ch.url);
-  let attempt=0;
+  const cands = urlCandidates(ch.url);
+  let attempt = 0;
 
-  function nextAttempt(){
-    if(_playVersion!==ver) return;
-    if(attempt>=cands.length){
-      // All candidates failed
-      if(ch.url.startsWith('http://')){
-        toast2('⚠️ HTTP stream — iOS HTTPS gerektirir. Sunucu https:// desteklemiyorsa oynatılamaz.', 5000);
-      } else {
-        toast2('Kanal şu an açılamıyor');
-      }
+  function next(){
+    if(_pv !== ver) return;
+    if(attempt >= cands.length){
+      showBuf(false);
+      if(ch.url.startsWith('http://'))
+        toast2('⚠️ HTTP stream — iOS yalnızca HTTPS oynatır', 5000);
+      else
+        toast2('Bu kanal şu an açılamıyor');
       return;
     }
-    const url=cands[attempt++];
 
-    v.oncanplay=null; v.onerror=null;
+    const url = cands[attempt++];
+    v.oncanplay = null; v.onerror = null;
+    clearTimeout(v._toTimer);
 
-    v.onerror=function(){
-      if(_playVersion!==ver) return;
-      // Format not supported — try next
-      v.oncanplay=null; v.onerror=null;
-      v.pause(); v.removeAttribute('src');
-      nextAttempt();
+    // 8 saniye timeout — tarayıcı bazen sonsuza kadar bekler
+    v._toTimer = setTimeout(()=>{
+      if(_pv !== ver) return;
+      v.oncanplay = null; v.onerror = null;
+      v.pause(); v.src = ''; v.load();
+      next();
+    }, 8000);
+
+    v.onerror = ()=>{
+      if(_pv !== ver) return;
+      clearTimeout(v._toTimer);
+      v.oncanplay = null; v.onerror = null;
+      v.pause(); v.src = ''; v.load();
+      next();
     };
 
-    v.src=url;
+    // canplay = stream açıldı, buffering bitti
+    v.oncanplay = ()=>{
+      if(_pv !== ver) return;
+      clearTimeout(v._toTimer);
+      _urlCache[ch.url] = url; // çalışan URL'yi kaydet
+      showBuf(false);
+    };
 
-    // play() — within user gesture context on first call
-    const p=v.play();
-    if(p){
-      p.catch(err=>{
-        if(_playVersion!==ver) return;
-        if(err.name==='AbortError') return;       // switching fast, normal
-        if(err.name==='NotAllowedError'){          // autoplay blocked
-          toast2('▶ Play tuşuna bas'); return;
-        }
-        // NotSupportedError or other — try next url
-        v.oncanplay=null; v.onerror=null;
-        v.pause(); v.removeAttribute('src');
-        nextAttempt();
-      });
-    }
+    v.src = url;
+    // load() çağırma — play() zaten yükler, load() ekstra gecikme yaratır
+
+    const p = v.play();
+    if(p) p.catch(err=>{
+      if(_pv !== ver || err.name === 'AbortError') return;
+      if(err.name === 'NotAllowedError'){ showBuf(false); toast2('▶ Play tuşuna bas'); return; }
+      clearTimeout(v._toTimer);
+      v.oncanplay = null; v.onerror = null;
+      v.pause(); v.src = ''; v.load();
+      next();
+    });
   }
 
-  nextAttempt();
+  next();
 
-  // Update now-playing marker
+  // Buffering başladı — waiting event
+  v.onwaiting = ()=>{
+    if(_pv !== ver) return;
+    showBuf(true);
+    // 15s bekledikten sonra sonraki URL'yi dene
+    clearTimeout(v._bufTimer);
+    v._bufTimer = setTimeout(()=>{
+      if(_pv !== ver) return;
+      if(v.readyState < 3){ // HAVE_FUTURE_DATA'dan az
+        v.oncanplay = null; v.onerror = null;
+        v.pause(); v.src = ''; v.load();
+        next();
+      }
+    }, 15000);
+  };
+  v.onplaying = ()=>{ if(_pv===ver){ showBuf(false); clearTimeout(v._bufTimer); } };
+
+  // Now-playing marker
   document.querySelectorAll('.chi.now').forEach(el=>el.classList.remove('now'));
-  const el=document.querySelector(`.chi[data-uid="${uid}"]`);
+  const el = document.querySelector(`.chi[data-uid="${uid}"]`);
   if(el){
     el.classList.add('now');
     if(!el.querySelector('.pbar')){
-      const pb=document.createElement('div'); pb.className='pbar'; el.prepend(pb);
+      const pb = document.createElement('div'); pb.className='pbar'; el.prepend(pb);
     }
     el.scrollIntoView({block:'nearest', behavior:'smooth'});
   }
 }
 
+/* ── Buffering göstergesi ── */
+function showBuf(on){
+  let b = $('buf-overlay');
+  if(!b){
+    b = document.createElement('div'); b.id='buf-overlay';
+    b.style.cssText='position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45);z-index:10;border-radius:12px;pointer-events:none;';
+    b.innerHTML='<div style="width:32px;height:32px;border:3px solid rgba(255,255,255,.2);border-top-color:var(--acc);border-radius:50%;animation:spin .8s linear infinite"></div>';
+    const wrap = qs('.mpwrap'); if(wrap) wrap.appendChild(b);
+    // spin keyframe
+    if(!document.getElementById('spin-style')){
+      const s=document.createElement('style');s.id='spin-style';
+      s.textContent='@keyframes spin{to{transform:rotate(360deg)}}';
+      document.head.appendChild(s);
+    }
+  }
+  b.style.display = on ? 'flex' : 'none';
+}
+
 function stopPlayer(){
   const v=$('vid');
-  v.oncanplay=null; v.onerror=null;
-  v.pause(); v.removeAttribute('src');
+  v.oncanplay=null; v.onerror=null; v.onwaiting=null; v.onplaying=null;
+  clearTimeout(v._toTimer); clearTimeout(v._bufTimer);
+  v.pause(); v.src=''; v.load();
+  showBuf(false);
   $('mplayer').classList.remove('open');
   $('pdot').classList.remove('v');
-  curCh=null; curIdx=-1; _playVersion++;
+  curCh=null; curIdx=-1; _pv++;
   document.querySelectorAll('.chi.now').forEach(el=>{
     el.classList.remove('now'); el.querySelector('.pbar')?.remove();
   });
