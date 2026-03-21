@@ -350,37 +350,6 @@ html,body{height:100%;width:100%;overflow:hidden;
   max-width:88vw;text-align:center;}
 #toast.on{opacity:1;transform:translateX(-50%) translateY(0) scale(1);}
 
-/* ─── FULLSCREEN OVERLAY ─── */
-#fsoverlay{
-  display:none;position:fixed;inset:0;z-index:9999;background:#000;
-}
-#fsoverlay.open{display:block;}
-#fsvid{
-  position:absolute;top:0;left:0;width:100%;height:100%;
-  object-fit:contain;background:#000;
-}
-#fsbar{
-  position:absolute;bottom:0;left:0;right:0;
-  display:flex;align-items:center;gap:8px;
-  padding:10px 14px calc(var(--sab)+12px);
-  background:linear-gradient(0deg,rgba(0,0,0,.8),transparent);
-  transition:opacity .3s;
-}
-#fsbar.hidden{opacity:0;pointer-events:none;}
-#fsname{flex:1;font-size:13px;font-weight:600;color:#fff;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.fsbtn{background:rgba(0,0,0,.3);border:none;color:#fff;cursor:pointer;
-  padding:8px;border-radius:50%;display:flex;align-items:center;justify-content:center;}
-.fsbtn svg{width:20px;height:20px;fill:none;stroke:#fff;stroke-width:2;
-  stroke-linecap:round;stroke-linejoin:round;}
-/* Force landscape via CSS transform when portrait */
-#fsoverlay.force-landscape{
-  width:100vh!important;height:100vw!important;
-  top:calc((100vh - 100vw)/2)!important;
-  left:calc((100vw - 100vh)/2)!important;
-  transform:rotate(90deg);
-  transform-origin:center center;
-}
 </style>
 </head>
 <body>
@@ -428,11 +397,6 @@ html,body{height:100%;width:100%;overflow:hidden;
           </button>
           <button class="mpc" onclick="skipCh(1)" title="Sonraki kanal">
             <svg viewBox="0 0 24 24"><polygon points="5,4 15,12 5,20"/><line x1="19" y1="4" x2="19" y2="20"/></svg>
-          </button>
-          <button class="mpc" onclick="goFullscreen()" title="Tam ekran" style="color:var(--acc)">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
-            </svg>
           </button>
           <button class="mpx" onclick="stopPlayer()">✕</button>
         </div>
@@ -635,24 +599,6 @@ html,body{height:100%;width:100%;overflow:hidden;
     </div>
   </div>
 
-<!-- FULLSCREEN OVERLAY -->
-<div id="fsoverlay">
-  <video id="fsvid" playsinline webkit-playsinline x-webkit-airplay="allow"
-         preload="none" controls></video>
-  <div id="fsbar">
-    <button class="fsbtn" onclick="closeFullscreen()">
-      <svg viewBox="0 0 24 24"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
-    </button>
-    <span id="fsname">—</span>
-    <button class="fsbtn" onclick="skipCh(-1)">
-      <svg viewBox="0 0 24 24"><polygon points="19,20 9,12 19,4"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
-    </button>
-    <button class="fsbtn" onclick="skipCh(1)">
-      <svg viewBox="0 0 24 24"><polygon points="5,4 15,12 5,20"/><line x1="19" y1="4" x2="19" y2="20"/></svg>
-    </button>
-  </div>
-</div>
-
 </div><!-- #app -->
 <div id="toast"></div>
 
@@ -791,7 +737,7 @@ function isVodOrSeries(g,n,u){
 /* ══════════════════════════════════════════════
    FETCH  — tries direct then 3 proxies
 ══════════════════════════════════════════════ */
-async function sfetch(url, ms=13000){
+async function sfetch(url, ms=20000){
   const attempts=[
     ()=>fetch(url, {signal:AbortSignal.timeout(ms)}),
     ()=>fetch('https://corsproxy.io/?'+encodeURIComponent(url), {signal:AbortSignal.timeout(ms)}),
@@ -825,12 +771,38 @@ async function doLoadM3U(){
   }
   if(!raw.startsWith('http')){ toast2('⚠️ http:// ile başlamalı'); return; }
 
-  // detect xtream URL
+  // detect xtream-style URL
   try{
     const u=new URL(raw);
     const user=u.searchParams.get('username');
     const pass=u.searchParams.get('password');
     if(user && pass){
+      // get.php URL → fetch directly as M3U (fastest, no JSON API overhead)
+      if(raw.includes('/get.php') || u.searchParams.get('type')){
+        // Direct M3U download URL — fetch it
+        setBtn('mbtn','⏳ Yükleniyor…',true);
+        try{
+          const txt=await sfetch(raw, 25000);
+          if(txt.includes('#EXTINF') || txt.includes('#EXTM3U')){
+            applyChannels(parseM3U(txt), name, 'm3u', {url:raw});
+          } else {
+            // Try adding output=ts if not already there
+            const altUrl=raw.includes('output=')?raw:raw+'&output=ts';
+            const txt2=await sfetch(altUrl, 20000);
+            if(txt2.includes('#EXTINF') || txt2.includes('#EXTM3U')){
+              applyChannels(parseM3U(txt2), name, 'm3u', {url:altUrl});
+            } else {
+              toast2('❌ M3U alınamadı — Dosya yöntemi dene');
+            }
+          }
+        }catch(e){
+          toast2('❌ Yüklenemedi — CORS engeli. Dosya yöntemi dene.');
+        }finally{
+          setBtn('mbtn','Yükle',false);
+        }
+        return;
+      }
+      // player_api style → use Xtream JSON
       $('xhost').value=u.origin;
       $('xuser').value=user;
       $('xpass').value=pass;
@@ -1228,77 +1200,7 @@ function stopPlayer(){
   document.querySelectorAll('.chi.now').forEach(el=>{
     el.classList.remove('now'); el.querySelector('.pbar')?.remove();
   });
-  closeFullscreen();
 }
-
-/* ── FULLSCREEN ── */
-let _fsBarTimer=null;
-
-function goFullscreen(){
-  if(!curCh) return;
-  const mini=$('vid');
-  const fv=$('fsvid');
-  const ov=$('fsoverlay');
-
-  // Copy current src + position to fullscreen video
-  fv.oncanplay=null; fv.onerror=null;
-  fv.src=mini.src||mini.currentSrc||'';
-  $('fsname').textContent=curCh.name;
-  ov.classList.add('open');
-
-  // Pause mini player, play fullscreen
-  mini.pause();
-  fv.play().catch(()=>{});
-
-  // Force landscape
-  applyFsOrientation();
-
-  // Lock orientation if API available (works in standalone PWA mode)
-  try{ screen.orientation.lock('landscape').catch(()=>{}); }catch(e){}
-
-  // Auto-hide bar
-  showFsBar();
-
-  // Tap overlay to toggle bar
-  fv.onclick=()=>showFsBar();
-}
-
-function applyFsOrientation(){
-  const ov=$('fsoverlay');
-  // If portrait, force landscape via CSS transform
-  if(window.innerHeight > window.innerWidth){
-    ov.classList.add('force-landscape');
-  } else {
-    ov.classList.remove('force-landscape');
-  }
-}
-
-function showFsBar(){
-  const bar=$('fsbar'); bar.classList.remove('hidden');
-  clearTimeout(_fsBarTimer);
-  _fsBarTimer=setTimeout(()=>bar.classList.add('hidden'),4000);
-}
-
-function closeFullscreen(){
-  const fv=$('fsvid');
-  const ov=$('fsoverlay');
-  if(!ov.classList.contains('open')) return;
-  fv.pause(); fv.removeAttribute('src');
-  ov.classList.remove('open','force-landscape');
-  clearTimeout(_fsBarTimer);
-  // Unlock orientation
-  try{ screen.orientation.unlock(); }catch(e){}
-  // Resume mini player if channel still active
-  if(curCh){
-    const mini=$('vid');
-    if(mini.src) mini.play().catch(()=>{});
-  }
-}
-
-// Re-check orientation on resize (handles device rotation)
-window.addEventListener('resize', ()=>{
-  if($('fsoverlay').classList.contains('open')) applyFsOrientation();
-});
 
 function togglePlay(){
   const v=$('vid');
