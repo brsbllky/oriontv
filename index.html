@@ -1075,14 +1075,53 @@ function doFilter(){
 /* ══════════════════════════════════════════════
    PLAY
 ══════════════════════════════════════════════ */
-let _playVersion=0; // increments on each playCh call — stale callbacks ignored
+let _playVersion=0;
+
+// Returns candidate URLs to try in order for a given channel URL
+function getUrlCandidates(url){
+  if(!url) return [];
+  // Already has a media extension — try as-is first, then swap
+  if(/\.(m3u8)(\?|$)/i.test(url)) return [url];
+  if(/\.(ts|mpeg|mpg)(\?|$)/i.test(url)){
+    return [url, url.replace(/\.(ts|mpeg|mpg)(\?.*)?$/i,'.m3u8$2')];
+  }
+  // No extension (Xtream-style: host/user/pass/streamid)
+  // iOS prefers HLS → try .m3u8 first, then .ts
+  return [url+'.m3u8', url+'.ts', url];
+}
+
+async function tryPlay(v, candidates, version){
+  for(let i=0; i<candidates.length; i++){
+    if(_playVersion !== version) return; // user switched channel
+    const url=candidates[i];
+    v.src=url;
+    try{
+      await v.play();
+      if(_playVersion !== version){ v.pause(); return; }
+      return; // success
+    }catch(err){
+      if(_playVersion !== version) return;
+      if(err.name==='AbortError') return;
+      if(err.name==='NotAllowedError'){
+        toast2('▶ Play tuşuna bas'); return;
+      }
+      // MEDIA_ERR_SRC_NOT_SUPPORTED (code 4) or network error — try next
+      if(i < candidates.length-1){
+        v.pause();
+        v.removeAttribute('src');
+        continue;
+      }
+      // All failed
+      toast2('Bu kanal şu an açılamıyor');
+    }
+  }
+}
 
 function playCh(uid){
   const channels=getChannels();
   const ch=channels.find(c=>c.uid===uid);
   if(!ch) return;
 
-  // cancel any pending play attempt
   _playVersion++;
   const myVersion=_playVersion;
 
@@ -1091,49 +1130,18 @@ function playCh(uid){
   if(curIdx===-1) curIdx=channels.indexOf(ch);
 
   const v=$('vid');
-
-  // Clear previous error state immediately
   v.pause();
   v.removeAttribute('src');
-  // Don't call v.load() here — it triggers 'emptied' which is fine but adds latency
 
-  // Update info bar
   $('mpname').textContent=ch.name;
   $('mpgrp').textContent=ch.group;
 
-  // Open player (must be visible before play() for iOS)
+  // Must be visible before play() for iOS gesture context
   $('mplayer').classList.add('open');
   $('pdot').classList.add('v');
 
-  // Set src and play — no v.load() call needed, browser does it
-  v.src=ch.url;
-  v.play().then(()=>{
-    if(_playVersion!==myVersion) return; // user already picked another channel
-  }).catch(err=>{
-    if(_playVersion!==myVersion) return; // stale — don't show error
-    if(err.name==='AbortError') return;  // normal when switching fast
-    if(err.name==='NotAllowedError'){
-      toast2('▶ Play tuşuna bas');
-      return;
-    }
-    // Format error — try .m3u8
-    if(!v._m3uTried && ch.url.match(/\.(ts|mpeg|mpg)(\?|$)/i)){
-      v._m3uTried=true;
-      const m3u=ch.url.replace(/\.(ts|mpeg|mpg)(\?.*)?$/i,'.m3u8$2');
-      v.src=m3u;
-      v.play().then(()=>{
-        if(_playVersion===myVersion) {} // playing fine
-      }).catch(()=>{
-        if(_playVersion!==myVersion) return;
-        toast2('Bu kanal bu cihazda açılamıyor');
-      });
-    } else {
-      toast2('Bu kanal şu an açılamıyor');
-    }
-  });
-
-  // Reset m3u tried flag for new channel
-  v._m3uTried=false;
+  const candidates=getUrlCandidates(ch.url);
+  tryPlay(v, candidates, myVersion);
 
   // Update now-playing marker
   document.querySelectorAll('.chi.now').forEach(el=>el.classList.remove('now'));
@@ -1179,19 +1187,7 @@ function skipCh(dir){
 /* video events */
 (()=>{
   const v=$('vid');
-  v.addEventListener('play',  ()=>{});
-  v.addEventListener('pause', ()=>{});
-  v.addEventListener('ended', ()=>{});
-  v.addEventListener('error', ()=>{
-    // Only show error if this is the current play version (not a stale attempt)
-    if(!curCh) return;
-    const err=v.error;
-    if(err && err.code===2) toast2('❌ Ağ hatası — bağlantını kontrol et');
-    else if(err && err.code===4 && !v._m3uTried) {} // handled in playCh
-    else if(err && err.code===4 && v._m3uTried) toast2('Bu kanal açılamıyor');
-  });
   v.addEventListener('timeupdate', updateSeek);
-  v.addEventListener('emptied', ()=>{ v._m3uTried=false; });
 })();
 
 function updateSeek(){
