@@ -349,6 +349,38 @@ html,body{height:100%;width:100%;overflow:hidden;
   white-space:nowrap;z-index:999;pointer-events:none;
   max-width:88vw;text-align:center;}
 #toast.on{opacity:1;transform:translateX(-50%) translateY(0) scale(1);}
+
+/* ─── FULLSCREEN OVERLAY ─── */
+#fsoverlay{
+  display:none;position:fixed;inset:0;z-index:9999;background:#000;
+}
+#fsoverlay.open{display:block;}
+#fsvid{
+  position:absolute;top:0;left:0;width:100%;height:100%;
+  object-fit:contain;background:#000;
+}
+#fsbar{
+  position:absolute;bottom:0;left:0;right:0;
+  display:flex;align-items:center;gap:8px;
+  padding:10px 14px calc(var(--sab)+12px);
+  background:linear-gradient(0deg,rgba(0,0,0,.8),transparent);
+  transition:opacity .3s;
+}
+#fsbar.hidden{opacity:0;pointer-events:none;}
+#fsname{flex:1;font-size:13px;font-weight:600;color:#fff;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.fsbtn{background:rgba(0,0,0,.3);border:none;color:#fff;cursor:pointer;
+  padding:8px;border-radius:50%;display:flex;align-items:center;justify-content:center;}
+.fsbtn svg{width:20px;height:20px;fill:none;stroke:#fff;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round;}
+/* Force landscape via CSS transform when portrait */
+#fsoverlay.force-landscape{
+  width:100vh!important;height:100vw!important;
+  top:calc((100vh - 100vw)/2)!important;
+  left:calc((100vw - 100vh)/2)!important;
+  transform:rotate(90deg);
+  transform-origin:center center;
+}
 </style>
 </head>
 <body>
@@ -396,6 +428,11 @@ html,body{height:100%;width:100%;overflow:hidden;
           </button>
           <button class="mpc" onclick="skipCh(1)" title="Sonraki kanal">
             <svg viewBox="0 0 24 24"><polygon points="5,4 15,12 5,20"/><line x1="19" y1="4" x2="19" y2="20"/></svg>
+          </button>
+          <button class="mpc" onclick="goFullscreen()" title="Tam ekran" style="color:var(--acc)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+            </svg>
           </button>
           <button class="mpx" onclick="stopPlayer()">✕</button>
         </div>
@@ -597,6 +634,24 @@ html,body{height:100%;width:100%;overflow:hidden;
 
     </div>
   </div>
+
+<!-- FULLSCREEN OVERLAY -->
+<div id="fsoverlay">
+  <video id="fsvid" playsinline webkit-playsinline x-webkit-airplay="allow"
+         preload="none" controls></video>
+  <div id="fsbar">
+    <button class="fsbtn" onclick="closeFullscreen()">
+      <svg viewBox="0 0 24 24"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
+    </button>
+    <span id="fsname">—</span>
+    <button class="fsbtn" onclick="skipCh(-1)">
+      <svg viewBox="0 0 24 24"><polygon points="19,20 9,12 19,4"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
+    </button>
+    <button class="fsbtn" onclick="skipCh(1)">
+      <svg viewBox="0 0 24 24"><polygon points="5,4 15,12 5,20"/><line x1="19" y1="4" x2="19" y2="20"/></svg>
+    </button>
+  </div>
+</div>
 
 </div><!-- #app -->
 <div id="toast"></div>
@@ -993,9 +1048,11 @@ function renderLive(){
 
   const channels=getChannels();
 
-  // Categories
-  const cats=['Tümü']; const seen=new Set();
+  // Categories — no "Tümü", first cat auto-selected if none active
+  const cats=[]; const seen=new Set();
   channels.forEach(c=>{ if(c.group&&!seen.has(c.group)){seen.add(c.group);cats.push(c.group);} });
+  // If activeCat doesn't exist in this source's cats, reset to first
+  if(activeCat!=='Tümü' && cats.length && !cats.includes(activeCat)) activeCat='Tümü';
   catsEl.innerHTML=cats.map(c=>
     `<div class="pill${c===activeCat?' on':''}" onclick="setCat('${c.replace(/'/g,"\\'")}')">
       ${esc(c)}</div>`
@@ -1004,7 +1061,7 @@ function renderLive(){
   // Filter
   const q=($('lq')?.value||'').toLowerCase().trim();
   let list=channels;
-  if(activeCat!=='Tümü') list=list.filter(c=>c.group===activeCat);
+  if(activeCat && activeCat!=='Tümü') list=list.filter(c=>c.group===activeCat);
   if(q) list=list.filter(c=>c.name.toLowerCase().includes(q));
   filtered=list;
 
@@ -1073,48 +1130,17 @@ function doFilter(){
 }
 
 /* ══════════════════════════════════════════════
-   PLAY
+   PLAY — event-driven retry for iOS
 ══════════════════════════════════════════════ */
-let _playVersion=0;
+let _playVersion = 0;
 
-// Returns candidate URLs to try in order for a given channel URL
-function getUrlCandidates(url){
+// Build URL list to try for a channel
+function urlCandidates(url){
   if(!url) return [];
-  // Already has a media extension — try as-is first, then swap
-  if(/\.(m3u8)(\?|$)/i.test(url)) return [url];
-  if(/\.(ts|mpeg|mpg)(\?|$)/i.test(url)){
-    return [url, url.replace(/\.(ts|mpeg|mpg)(\?.*)?$/i,'.m3u8$2')];
-  }
-  // No extension (Xtream-style: host/user/pass/streamid)
-  // iOS prefers HLS → try .m3u8 first, then .ts
+  if(/\.m3u8(\?|$)/i.test(url))  return [url];
+  if(/\.(ts|mpeg|mpg)(\?|$)/i.test(url)) return [url, url.replace(/\.(ts|mpeg|mpg)(\?.*)?$/i,'.m3u8$2')];
+  // Xtream-style: no extension → try .m3u8 then .ts then bare
   return [url+'.m3u8', url+'.ts', url];
-}
-
-async function tryPlay(v, candidates, version){
-  for(let i=0; i<candidates.length; i++){
-    if(_playVersion !== version) return; // user switched channel
-    const url=candidates[i];
-    v.src=url;
-    try{
-      await v.play();
-      if(_playVersion !== version){ v.pause(); return; }
-      return; // success
-    }catch(err){
-      if(_playVersion !== version) return;
-      if(err.name==='AbortError') return;
-      if(err.name==='NotAllowedError'){
-        toast2('▶ Play tuşuna bas'); return;
-      }
-      // MEDIA_ERR_SRC_NOT_SUPPORTED (code 4) or network error — try next
-      if(i < candidates.length-1){
-        v.pause();
-        v.removeAttribute('src');
-        continue;
-      }
-      // All failed
-      toast2('Bu kanal şu an açılamıyor');
-    }
-  }
 }
 
 function playCh(uid){
@@ -1123,25 +1149,62 @@ function playCh(uid){
   if(!ch) return;
 
   _playVersion++;
-  const myVersion=_playVersion;
+  const ver=_playVersion;
 
-  curCh=ch;
-  curIdx=filtered.findIndex(c=>c.uid===uid);
+  curCh=ch; curIdx=filtered.findIndex(c=>c.uid===uid);
   if(curIdx===-1) curIdx=channels.indexOf(ch);
 
   const v=$('vid');
+
+  // Detach old listeners
+  v.oncanplay=null; v.onerror=null;
+
   v.pause();
   v.removeAttribute('src');
 
   $('mpname').textContent=ch.name;
   $('mpgrp').textContent=ch.group;
-
-  // Must be visible before play() for iOS gesture context
   $('mplayer').classList.add('open');
   $('pdot').classList.add('v');
 
-  const candidates=getUrlCandidates(ch.url);
-  tryPlay(v, candidates, myVersion);
+  const cands=urlCandidates(ch.url);
+  let attempt=0;
+
+  function nextAttempt(){
+    if(_playVersion!==ver) return;
+    if(attempt>=cands.length){ toast2('Kanal şu an açılamıyor'); return; }
+    const url=cands[attempt++];
+
+    v.oncanplay=null; v.onerror=null;
+
+    v.onerror=function(){
+      if(_playVersion!==ver) return;
+      // Format not supported — try next
+      v.oncanplay=null; v.onerror=null;
+      v.pause(); v.removeAttribute('src');
+      nextAttempt();
+    };
+
+    v.src=url;
+
+    // play() — within user gesture context on first call
+    const p=v.play();
+    if(p){
+      p.catch(err=>{
+        if(_playVersion!==ver) return;
+        if(err.name==='AbortError') return;       // switching fast, normal
+        if(err.name==='NotAllowedError'){          // autoplay blocked
+          toast2('▶ Play tuşuna bas'); return;
+        }
+        // NotSupportedError or other — try next url
+        v.oncanplay=null; v.onerror=null;
+        v.pause(); v.removeAttribute('src');
+        nextAttempt();
+      });
+    }
+  }
+
+  nextAttempt();
 
   // Update now-playing marker
   document.querySelectorAll('.chi.now').forEach(el=>el.classList.remove('now'));
@@ -1157,15 +1220,85 @@ function playCh(uid){
 
 function stopPlayer(){
   const v=$('vid');
-  v.pause(); v.removeAttribute('src'); v.load();
+  v.oncanplay=null; v.onerror=null;
+  v.pause(); v.removeAttribute('src');
   $('mplayer').classList.remove('open');
   $('pdot').classList.remove('v');
-  curCh=null; curIdx=-1;
+  curCh=null; curIdx=-1; _playVersion++;
   document.querySelectorAll('.chi.now').forEach(el=>{
-    el.classList.remove('now');
-    el.querySelector('.pbar')?.remove();
+    el.classList.remove('now'); el.querySelector('.pbar')?.remove();
   });
+  closeFullscreen();
 }
+
+/* ── FULLSCREEN ── */
+let _fsBarTimer=null;
+
+function goFullscreen(){
+  if(!curCh) return;
+  const mini=$('vid');
+  const fv=$('fsvid');
+  const ov=$('fsoverlay');
+
+  // Copy current src + position to fullscreen video
+  fv.oncanplay=null; fv.onerror=null;
+  fv.src=mini.src||mini.currentSrc||'';
+  $('fsname').textContent=curCh.name;
+  ov.classList.add('open');
+
+  // Pause mini player, play fullscreen
+  mini.pause();
+  fv.play().catch(()=>{});
+
+  // Force landscape
+  applyFsOrientation();
+
+  // Lock orientation if API available (works in standalone PWA mode)
+  try{ screen.orientation.lock('landscape').catch(()=>{}); }catch(e){}
+
+  // Auto-hide bar
+  showFsBar();
+
+  // Tap overlay to toggle bar
+  fv.onclick=()=>showFsBar();
+}
+
+function applyFsOrientation(){
+  const ov=$('fsoverlay');
+  // If portrait, force landscape via CSS transform
+  if(window.innerHeight > window.innerWidth){
+    ov.classList.add('force-landscape');
+  } else {
+    ov.classList.remove('force-landscape');
+  }
+}
+
+function showFsBar(){
+  const bar=$('fsbar'); bar.classList.remove('hidden');
+  clearTimeout(_fsBarTimer);
+  _fsBarTimer=setTimeout(()=>bar.classList.add('hidden'),4000);
+}
+
+function closeFullscreen(){
+  const fv=$('fsvid');
+  const ov=$('fsoverlay');
+  if(!ov.classList.contains('open')) return;
+  fv.pause(); fv.removeAttribute('src');
+  ov.classList.remove('open','force-landscape');
+  clearTimeout(_fsBarTimer);
+  // Unlock orientation
+  try{ screen.orientation.unlock(); }catch(e){}
+  // Resume mini player if channel still active
+  if(curCh){
+    const mini=$('vid');
+    if(mini.src) mini.play().catch(()=>{});
+  }
+}
+
+// Re-check orientation on resize (handles device rotation)
+window.addEventListener('resize', ()=>{
+  if($('fsoverlay').classList.contains('open')) applyFsOrientation();
+});
 
 function togglePlay(){
   const v=$('vid');
