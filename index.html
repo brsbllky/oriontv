@@ -72,27 +72,27 @@ html,body{height:100%;width:100%;overflow:hidden;
 /* ─── MINI PLAYER ─── */
 #mplayer{flex-shrink:0;overflow:hidden;max-height:0;
   transition:max-height .3s cubic-bezier(.4,0,.2,1);}
-#mplayer.open{max-height:62vw;}
-.mpi{padding:8px 11px 4px;}
-.mpwrap{border-radius:12px;overflow:hidden;background:#000;position:relative;}
-#vid{width:100%;display:block;max-height:40vw;
+#mplayer.open{max-height:80vw;}
+.mpi{padding:0;}
+.mpwrap{border-radius:0;overflow:hidden;background:#000;position:relative;}
+#vid{width:100%;display:block;aspect-ratio:16/9;max-height:56vw;
   object-fit:contain;background:#000;}
 .mpbar{display:flex;align-items:center;gap:7px;
-  padding:6px 10px;background:rgba(0,0,0,.65);}
+  padding:8px 14px;background:rgba(0,0,0,.5);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);}
 .mpinfo{flex:1;min-width:0;}
-.mpname{font-size:12px;font-weight:600;
+.mpname{font-size:13px;font-weight:700;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.mpgrp{font-size:10px;color:var(--t3);margin-top:1px;}
+.mpgrp{font-size:11px;color:var(--t3);margin-top:1px;}
 .mpc{background:none;border:none;color:var(--t1);cursor:pointer;
-  padding:4px;display:flex;align-items:center;flex-shrink:0;}
-.mpc svg{width:20px;height:20px;fill:none;stroke:currentColor;
+  padding:6px;display:flex;align-items:center;flex-shrink:0;}
+.mpc svg{width:22px;height:22px;fill:none;stroke:currentColor;
   stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
 .mpc.play svg{stroke:var(--acc);}
 .mpx{background:none;border:none;color:var(--t3);cursor:pointer;
-  font-size:16px;padding:4px 2px;line-height:1;flex-shrink:0;}
+  font-size:18px;padding:4px 6px;line-height:1;flex-shrink:0;}
 /* seek */
-.mpseek{padding:4px 10px 2px;background:rgba(0,0,0,.65);}
-.mptrack{width:100%;height:3px;background:rgba(255,255,255,.15);
+.mpseek{padding:5px 14px 3px;background:rgba(0,0,0,.5);}
+.mptrack{width:100%;height:4px;background:rgba(255,255,255,.15);
   border-radius:2px;position:relative;cursor:pointer;}
 .mpbuf{position:absolute;left:0;top:0;height:100%;
   background:rgba(255,255,255,.22);border-radius:2px;}
@@ -388,7 +388,7 @@ html,body{height:100%;width:100%;overflow:hidden;
                x-webkit-airplay="allow"
                preload="none"
                controls
-               style="width:100%;display:block;max-height:40vw;object-fit:contain;background:#000;"></video>
+               style="width:100%;display:block;aspect-ratio:16/9;max-height:56vw;object-fit:contain;background:#000;"></video>
         <div class="mpbar">
           <div class="mpinfo">
             <div class="mpname" id="mpname">—</div>
