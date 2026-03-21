@@ -6,1014 +6,1222 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="OrionTV">
-<meta name="theme-color" content="#08001a">
+<meta name="theme-color" content="#07001a">
 <title>OrionTV</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="app_icon.png">
 <style>
-/* ── RESET & BASE ── */
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%;}
+/* ─── RESET ─── */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation;
+  -webkit-text-size-adjust:100%;text-size-adjust:100%;}
 :root{
   --sat:env(safe-area-inset-top,44px);
   --sab:env(safe-area-inset-bottom,34px);
   --acc:#00c8ff;--acc2:#bf5fff;
   --grad:linear-gradient(135deg,#bf5fff,#00c8ff);
   --red:#ff453a;
-  --t1:rgba(255,255,255,.93);--t2:rgba(255,255,255,.5);--t3:rgba(255,255,255,.25);
-  --glass:rgba(255,255,255,.07);--gbr:rgba(255,255,255,.13);--spec:rgba(255,255,255,.25);
+  --t1:rgba(255,255,255,.92);--t2:rgba(255,255,255,.48);--t3:rgba(255,255,255,.22);
+  --gb:rgba(255,255,255,.07);--gbr:rgba(255,255,255,.12);
 }
-html,body{height:100%;width:100%;overflow:hidden;background:#08001a;color:var(--t1);
-  font-family:-apple-system,'Helvetica Neue',sans-serif;-webkit-font-smoothing:antialiased;}
+html,body{height:100%;width:100%;overflow:hidden;
+  background:#07001a;color:var(--t1);
+  font-family:-apple-system,'Helvetica Neue',sans-serif;
+  -webkit-font-smoothing:antialiased;}
+*{scrollbar-width:none;-webkit-overflow-scrolling:touch;}
 *::-webkit-scrollbar{display:none;}
-*{scrollbar-width:none;}
 
-/* ── MESH BG ── */
-#mesh{position:fixed;inset:0;z-index:0;pointer-events:none;}
-.blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.55;animation:bf 14s ease-in-out infinite alternate;}
-.b1{width:50vw;height:50vw;background:#2a007a;top:-10vw;left:-10vw;animation-duration:14s;}
-.b2{width:45vw;height:45vw;background:#003070;bottom:-10vw;right:-10vw;animation-duration:11s;animation-delay:-4s;}
-.b3{width:40vw;height:40vw;background:#5500a0;top:40%;left:5%;animation-duration:17s;animation-delay:-7s;}
-@keyframes bf{0%{transform:translate(0,0)scale(1)}50%{transform:translate(4vw,-3vw)scale(1.06)}100%{transform:translate(-3vw,4vw)scale(.95)}}
+/* ─── MESH BG ─── */
+#mesh{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+.blob{position:absolute;border-radius:50%;filter:blur(70px);opacity:.5;
+  animation:bf 15s ease-in-out infinite alternate;}
+.b1{width:60vw;height:60vw;background:#25006a;top:-15vw;left:-15vw;animation-duration:15s;}
+.b2{width:50vw;height:50vw;background:#002860;bottom:-10vw;right:-10vw;animation-duration:12s;animation-delay:-5s;}
+.b3{width:40vw;height:40vw;background:#4e0090;top:42%;left:8%;animation-duration:18s;animation-delay:-8s;}
+@keyframes bf{0%{transform:translate(0,0)scale(1)}50%{transform:translate(3vw,-2vw)scale(1.05)}100%{transform:translate(-2vw,3vw)scale(.96)}}
 
-/* ── GLASS UTIL ── */
-.g{background:var(--glass);backdrop-filter:blur(20px) saturate(1.8);-webkit-backdrop-filter:blur(20px) saturate(1.8);border:1px solid var(--gbr);box-shadow:0 1px 0 var(--spec) inset,0 6px 24px rgba(0,0,0,.45);}
+/* ─── GLASS ─── */
+.g{background:var(--gb);
+  backdrop-filter:blur(20px) saturate(1.8);
+  -webkit-backdrop-filter:blur(20px) saturate(1.8);
+  border:1px solid var(--gbr);
+  box-shadow:0 1px 0 rgba(255,255,255,.18) inset,0 6px 20px rgba(0,0,0,.4);}
 
-/* ── APP SHELL ── */
-#app{position:relative;z-index:1;display:flex;flex-direction:column;height:100vh;height:100dvh;width:100%;overflow:hidden;}
+/* ─── APP ─── */
+#app{position:relative;z-index:1;display:flex;flex-direction:column;
+  height:100vh;height:100dvh;width:100%;overflow:hidden;}
 
-/* ── TOPBAR ── */
-#topbar{
-  flex-shrink:0;
-  padding:calc(var(--sat) + 8px) 14px 10px;
-  display:flex;align-items:center;justify-content:space-between;
-  gap:8px;
-}
-.logo{display:flex;align-items:center;gap:8px;flex:1;min-width:0;}
-.logo-img{width:28px;height:28px;border-radius:7px;flex-shrink:0;overflow:hidden;box-shadow:0 0 10px rgba(0,200,255,.45);}
-.logo-img img{width:100%;height:100%;object-fit:cover;}
+/* ─── TOPBAR ─── */
+#topbar{flex-shrink:0;
+  padding:calc(var(--sat) + 6px) 14px 8px;
+  display:flex;align-items:center;gap:8px;}
+.logo-img{width:28px;height:28px;border-radius:7px;overflow:hidden;flex-shrink:0;
+  box-shadow:0 0 10px rgba(0,200,255,.4);}
+.logo-img img{width:100%;height:100%;object-fit:cover;display:block;}
 .logo-name{font-size:17px;font-weight:800;letter-spacing:-.3px;
-  background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.hbtn{width:32px;height:32px;border-radius:50%;border:none;background:var(--glass);border:1px solid var(--gbr);
-  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
-  display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
-.hbtn svg{width:15px;height:15px;fill:none;stroke:var(--t2);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
-.hbtn:active{opacity:.6;}
+  background:var(--grad);-webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;background-clip:text;
+  white-space:nowrap;}
 
-/* ── SCREENS ── */
+/* ─── SCREENS ─── */
 .scr{display:none;flex-direction:column;flex:1;min-height:0;overflow:hidden;}
 .scr.on{display:flex;}
 
-/* ── MINI PLAYER ── */
-/* Sits between topbar and content, collapses to 0 when nothing playing */
-#mini-player{
-  flex-shrink:0;overflow:hidden;
-  height:0;transition:height .3s ease;
-}
-#mini-player.open{height:auto;}
-.mp-inner{padding:0 12px 8px;}
-.mp-video-wrap{
-  width:100%;background:#000;border-radius:12px;overflow:hidden;
-  position:relative;
-}
-.mp-video-wrap video{
-  width:100%;display:block;max-height:42vw;object-fit:contain;background:#000;
-}
-.mp-bar{
-  display:flex;align-items:center;gap:8px;
-  padding:7px 10px;
-  background:rgba(0,0,0,.6);
-}
-.mp-info{flex:1;min-width:0;}
-.mp-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.mp-grp{font-size:10px;color:var(--t3);margin-top:1px;}
-.mp-ctrl{background:none;border:none;color:var(--t1);cursor:pointer;padding:4px;display:flex;align-items:center;}
-.mp-ctrl svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
-.mp-ctrl.play svg{stroke:var(--acc);}
-.mp-close{background:none;border:none;color:var(--t3);cursor:pointer;font-size:16px;padding:4px;line-height:1;}
-/* Seek bar under video */
-.mp-seek-wrap{padding:4px 0 2px;}
-.mp-seek-track{width:100%;height:3px;background:rgba(255,255,255,.15);border-radius:2px;position:relative;cursor:pointer;}
-.mp-seek-buf{position:absolute;left:0;top:0;height:100%;background:rgba(255,255,255,.25);border-radius:2px;}
-.mp-seek-prog{position:absolute;left:0;top:0;height:100%;background:linear-gradient(90deg,#bf5fff,#00c8ff);border-radius:2px;}
-/* Time */
-.mp-time{font-size:9px;color:var(--t3);text-align:right;padding:0 10px 3px;}
+/* ─── MINI PLAYER ─── */
+#mplayer{flex-shrink:0;overflow:hidden;max-height:0;
+  transition:max-height .3s cubic-bezier(.4,0,.2,1);}
+#mplayer.open{max-height:56vw;}
+.mpi{padding:8px 11px 4px;}
+.mpwrap{border-radius:12px;overflow:hidden;background:#000;position:relative;}
+#vid{width:100%;display:block;max-height:40vw;
+  object-fit:contain;background:#000;}
+.mpbar{display:flex;align-items:center;gap:7px;
+  padding:6px 10px;background:rgba(0,0,0,.65);}
+.mpinfo{flex:1;min-width:0;}
+.mpname{font-size:12px;font-weight:600;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mpgrp{font-size:10px;color:var(--t3);margin-top:1px;}
+.mpc{background:none;border:none;color:var(--t1);cursor:pointer;
+  padding:4px;display:flex;align-items:center;flex-shrink:0;}
+.mpc svg{width:20px;height:20px;fill:none;stroke:currentColor;
+  stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+.mpc.play svg{stroke:var(--acc);}
+.mpx{background:none;border:none;color:var(--t3);cursor:pointer;
+  font-size:16px;padding:4px 2px;line-height:1;flex-shrink:0;}
+/* seek */
+.mpseek{padding:4px 10px 2px;background:rgba(0,0,0,.65);}
+.mptrack{width:100%;height:3px;background:rgba(255,255,255,.15);
+  border-radius:2px;position:relative;cursor:pointer;}
+.mpbuf{position:absolute;left:0;top:0;height:100%;
+  background:rgba(255,255,255,.22);border-radius:2px;}
+.mpprog{position:absolute;left:0;top:0;height:100%;
+  background:var(--grad);border-radius:2px;}
+.mptime{font-size:9px;color:var(--t3);text-align:right;
+  padding:1px 10px 4px;background:rgba(0,0,0,.65);}
 
-/* ── SEARCH + CATS ── */
-.srch-wrap{flex-shrink:0;padding:6px 12px 6px;}
+/* ─── SEARCH ─── */
+.sw{flex-shrink:0;padding:6px 11px 5px;}
 .srch{display:flex;align-items:center;gap:7px;padding:9px 12px;border-radius:13px;}
-.srch svg{width:14px;height:14px;fill:none;stroke:var(--t3);stroke-width:2.3;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;}
-.srch input{flex:1;background:none;border:none;outline:none;color:var(--t1);font-size:14px;font-family:inherit;}
+.srch svg{width:14px;height:14px;fill:none;stroke:var(--t3);
+  stroke-width:2.3;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;}
+.srch input{flex:1;background:none;border:none;outline:none;
+  color:var(--t1);font-size:14px;font-family:inherit;}
 .srch input::placeholder{color:var(--t3);}
-.cats{flex-shrink:0;padding:0 12px 7px;display:flex;gap:6px;overflow-x:auto;}
-.pill{flex-shrink:0;padding:5px 12px;border-radius:16px;font-size:11px;font-weight:500;cursor:pointer;white-space:nowrap;
-  color:var(--t2);background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);transition:all .15s;}
-.pill.on{background:linear-gradient(135deg,rgba(191,95,255,.28),rgba(0,200,255,.28));
-  border-color:rgba(0,200,255,.4);color:#fff;font-weight:600;}
 
-/* ── SEC HEADER ── */
-.shdr{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:1px 16px 6px;}
+/* ─── CATS ─── */
+.cats{flex-shrink:0;padding:0 11px 6px;
+  display:flex;gap:5px;overflow-x:auto;}
+.pill{flex-shrink:0;padding:5px 11px;border-radius:15px;
+  font-size:11px;font-weight:500;cursor:pointer;white-space:nowrap;
+  color:var(--t2);background:rgba(255,255,255,.07);
+  border:1px solid rgba(255,255,255,.1);transition:all .15s;}
+.pill.on{background:linear-gradient(135deg,rgba(191,95,255,.26),rgba(0,200,255,.26));
+  border-color:rgba(0,200,255,.38);color:#fff;font-weight:600;}
+
+/* ─── SEC HDR ─── */
+.shdr{flex-shrink:0;display:flex;align-items:center;
+  justify-content:space-between;padding:1px 15px 5px;}
 .sttl{font-size:14px;font-weight:700;}
 .scnt{font-size:10px;color:var(--t3);}
 
-/* ── LIST ── */
-.lscroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
-.chlist{display:flex;flex-direction:column;gap:5px;padding:0 10px 12px;}
+/* ─── CHANNEL LIST ─── */
+.lscr{flex:1;overflow-y:auto;}
+.chl{display:flex;flex-direction:column;gap:5px;padding:0 9px 12px;}
 
-.chi{
-  display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:14px;
-  cursor:pointer;transition:all .15s;position:relative;overflow:hidden;
-  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);
+/* channel item */
+.chi{display:flex;align-items:center;gap:10px;padding:9px 11px;
+  border-radius:14px;cursor:pointer;position:relative;overflow:hidden;
+  background:rgba(255,255,255,.062);border:1px solid rgba(255,255,255,.09);
   -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
-  animation:ri .25s cubic-bezier(.34,1.4,.64,1) both;
-}
-.chi::before{content:'';position:absolute;left:0;right:0;top:0;height:40%;
-  background:linear-gradient(180deg,rgba(255,255,255,.06),transparent);border-radius:14px 14px 0 0;pointer-events:none;}
-.chi:active{transform:scale(.95);}
-.chi.now{background:linear-gradient(135deg,rgba(191,95,255,.12),rgba(0,200,255,.12));border-color:rgba(0,200,255,.32);}
+  animation:ri .24s cubic-bezier(.34,1.4,.64,1) both;transition:opacity .15s;}
+.chi::before{content:'';position:absolute;left:0;right:0;top:0;height:45%;
+  background:linear-gradient(180deg,rgba(255,255,255,.055),transparent);
+  border-radius:14px 14px 0 0;pointer-events:none;}
+.chi:active{opacity:.65;}
+.chi.now{background:linear-gradient(135deg,rgba(191,95,255,.11),rgba(0,200,255,.11));
+  border-color:rgba(0,200,255,.3);}
 @keyframes ri{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
-.ch-logo{width:40px;height:40px;border-radius:10px;overflow:hidden;background:rgba(255,255,255,.08);
-  border:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;
+.chlogo{width:40px;height:40px;border-radius:10px;overflow:hidden;
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.11);
+  display:flex;align-items:center;justify-content:center;
   font-size:9px;font-weight:700;flex-shrink:0;color:var(--t2);}
-.ch-logo img{width:100%;height:100%;object-fit:cover;}
+.chlogo img{width:100%;height:100%;object-fit:cover;}
 .chinfo{flex:1;min-width:0;}
-.chname{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.chname{font-size:13px;font-weight:600;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .chmeta{font-size:10px;color:var(--t2);margin-top:1px;}
-.chright{display:flex;align-items:center;gap:3px;flex-shrink:0;}
-.favbtn{background:none;border:none;cursor:pointer;font-size:16px;padding:3px;opacity:.3;line-height:1;}
-.favbtn.on{opacity:1;}
+.chr{display:flex;align-items:center;flex-shrink:0;}
+.fb{background:none;border:none;cursor:pointer;
+  font-size:17px;padding:3px;opacity:.3;line-height:1;}
+.fb.on{opacity:1;}
 .pbar{width:3px;height:22px;border-radius:2px;flex-shrink:0;
-  background:linear-gradient(180deg,#00c8ff,#bf5fff);box-shadow:0 0 6px rgba(0,200,255,.6);}
+  background:var(--grad);box-shadow:0 0 6px rgba(0,200,255,.55);}
 
-/* ── EMPTY ── */
-.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;
-  flex:1;gap:8px;text-align:center;padding:16px;}
-.empty svg{opacity:.2;}
-.empty-ttl{font-size:16px;font-weight:700;color:var(--t2);}
-.empty-sub{font-size:12px;color:var(--t3);line-height:1.5;}
-.empty-btn{margin-top:4px;padding:10px 22px;border-radius:12px;border:none;
-  background:linear-gradient(135deg,rgba(191,95,255,.24),rgba(0,200,255,.24));
-  border:1px solid rgba(0,200,255,.35);color:#fff;font-size:13px;font-weight:600;cursor:pointer;}
+/* ─── EMPTY ─── */
+.empty{display:flex;flex-direction:column;align-items:center;
+  justify-content:center;flex:1;gap:8px;text-align:center;padding:16px;}
+.empty svg{opacity:.18;}
+.ettl{font-size:16px;font-weight:700;color:var(--t2);}
+.esub{font-size:12px;color:var(--t3);line-height:1.5;}
+.ebtn{margin-top:4px;padding:10px 22px;border-radius:12px;border:none;
+  background:linear-gradient(135deg,rgba(191,95,255,.22),rgba(0,200,255,.22));
+  border:1px solid rgba(0,200,255,.34);
+  color:#fff;font-size:13px;font-weight:600;cursor:pointer;}
 
-/* ── SERIES BREADCRUMB ── */
-.bc{flex-shrink:0;display:flex;align-items:center;gap:5px;padding:4px 14px 6px;flex-wrap:wrap;}
-.bci{font-size:12px;color:var(--t3);cursor:pointer;}
-.bci:last-child{color:var(--t1);font-weight:600;cursor:default;}
-.bcsep{color:var(--t3);font-size:11px;}
-
-/* ── FAV ── */
+/* ─── FAV SCREEN ─── */
 #scr-fav{overflow:hidden;}
-.fav-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.fscr{flex:1;overflow-y:auto;}
 
-/* ── SETTINGS ── */
-#scr-settings{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 13px calc(90px + var(--sab));}
-.stitle{font-size:20px;font-weight:800;letter-spacing:-.3px;padding:6px 2px 14px;
-  background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+/* ─── SETTINGS SCREEN ─── */
+#scr-settings{overflow-y:auto;padding:0 12px calc(88px + var(--sab));}
+.stitle{font-size:20px;font-weight:800;letter-spacing:-.3px;
+  padding:5px 2px 13px;
+  background:var(--grad);-webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;background-clip:text;}
 
-.stabs{display:flex;gap:5px;margin-bottom:11px;}
-.stab{flex:1;padding:9px 4px;border-radius:12px;border:1px solid rgba(255,255,255,.1);
-  background:rgba(255,255,255,.05);color:var(--t3);font-size:11px;font-weight:600;cursor:pointer;text-align:center;transition:.15s;}
-.stab.on{background:linear-gradient(135deg,rgba(191,95,255,.2),rgba(0,200,255,.2));
-  border-color:rgba(0,200,255,.35);color:#fff;}
-.spanel{display:none;} .spanel.on{display:block;}
+.stabs{display:flex;gap:5px;margin-bottom:10px;}
+.stab{flex:1;padding:9px 3px;border-radius:11px;
+  border:1px solid rgba(255,255,255,.1);
+  background:rgba(255,255,255,.05);
+  color:var(--t3);font-size:11px;font-weight:600;
+  cursor:pointer;text-align:center;transition:.14s;}
+.stab.on{background:linear-gradient(135deg,rgba(191,95,255,.18),rgba(0,200,255,.18));
+  border-color:rgba(0,200,255,.34);color:#fff;}
+.spanel{display:none;}.spanel.on{display:block;}
 
-.flbl{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--t3);margin-bottom:5px;display:block;}
-.fwrap{margin-bottom:9px;}
-.ginp{width:100%;padding:10px 13px;border-radius:12px;
+.flbl{font-size:10px;font-weight:700;letter-spacing:.6px;
+  text-transform:uppercase;color:var(--t3);margin-bottom:5px;display:block;}
+.fw{margin-bottom:9px;}
+.ginp{width:100%;padding:10px 12px;border-radius:12px;
   background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);
-  color:var(--t1);font-family:inherit;font-size:14px;outline:none;transition:.15s;}
-.ginp:focus{border-color:rgba(0,200,255,.35);}
+  color:var(--t1);font-family:inherit;font-size:14px;outline:none;transition:.14s;}
+.ginp:focus{border-color:rgba(0,200,255,.34);}
 .ginp::placeholder{color:var(--t3);}
-.gta{width:100%;padding:10px 13px;border-radius:12px;
+.gta{width:100%;padding:10px 12px;border-radius:12px;
   background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);
-  color:var(--t1);font-family:inherit;font-size:13px;outline:none;transition:.15s;resize:none;height:78px;}
-.gta:focus{border-color:rgba(0,200,255,.35);}
+  color:var(--t1);font-family:inherit;font-size:13px;
+  outline:none;resize:none;height:76px;transition:.14s;}
+.gta:focus{border-color:rgba(0,200,255,.34);}
 .gta::placeholder{color:var(--t3);}
-.pw-wrap{position:relative;}
-.pw-wrap .ginp{padding-right:42px;}
-.peye{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--t3);cursor:pointer;font-size:15px;}
+.pw{position:relative;}
+.pw .ginp{padding-right:40px;}
+.peye{position:absolute;right:10px;top:50%;
+  transform:translateY(-50%);background:none;border:none;
+  color:var(--t3);cursor:pointer;font-size:15px;padding:2px;}
 
-.ibox{display:flex;gap:7px;padding:9px 11px;border-radius:11px;margin-bottom:10px;
-  background:rgba(0,200,255,.07);border:1px solid rgba(0,200,255,.15);font-size:11px;color:var(--t2);line-height:1.5;}
+.ibox{display:flex;gap:7px;padding:8px 10px;border-radius:10px;
+  margin-bottom:9px;background:rgba(0,200,255,.06);
+  border:1px solid rgba(0,200,255,.14);
+  font-size:11px;color:var(--t2);line-height:1.5;}
 .ibox b{color:var(--t1);}
 
-.btnp{width:100%;padding:12px;border-radius:14px;border:none;
-  background:linear-gradient(135deg,rgba(191,95,255,.28),rgba(0,200,255,.28));
-  border:1px solid rgba(0,200,255,.38);color:#fff;font-size:14px;font-weight:600;cursor:pointer;
-  margin-top:6px;font-family:inherit;transition:.15s;}
-.btnp:active{transform:scale(.97);}
-.btnp:disabled{opacity:.45;cursor:not-allowed;}
+.btnp{width:100%;padding:12px;border-radius:13px;border:none;
+  background:linear-gradient(135deg,rgba(191,95,255,.26),rgba(0,200,255,.26));
+  border:1px solid rgba(0,200,255,.36);
+  color:#fff;font-size:14px;font-weight:600;cursor:pointer;
+  margin-top:6px;font-family:inherit;}
+.btnp:active{opacity:.8;}
+.btnp:disabled{opacity:.4;cursor:not-allowed;}
 
-.flbl-c{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:12px;
-  border-radius:14px;cursor:pointer;background:rgba(255,255,255,.06);
-  border:1.5px dashed rgba(255,255,255,.14);color:var(--t2);font-size:13px;font-weight:500;}
+.flbl-c{display:flex;align-items:center;justify-content:center;
+  gap:7px;width:100%;padding:12px;border-radius:13px;cursor:pointer;
+  background:rgba(255,255,255,.06);border:1.5px dashed rgba(255,255,255,.13);
+  color:var(--t2);font-size:13px;font-weight:500;}
+.flbl-c:active{opacity:.7;}
 #finput{display:none;}
 
-/* Sources */
-.srcitem{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:12px;
-  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.09);margin-bottom:6px;}
-.srcinfo{flex:1;min-width:0;}
-.srcname{font-size:13px;font-weight:600;}
-.srcsub{font-size:10px;color:var(--t3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.srcdel{background:none;border:none;color:var(--red);cursor:pointer;font-size:17px;padding:2px;opacity:.7;}
+/* sources */
+.srcitem{display:flex;align-items:center;gap:8px;padding:8px 11px;
+  border-radius:11px;background:rgba(255,255,255,.055);
+  border:1px solid rgba(255,255,255,.08);margin-bottom:5px;}
+.sri{flex:1;min-width:0;}
+.srn{font-size:13px;font-weight:600;}
+.srs{font-size:10px;color:var(--t3);margin-top:1px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.srdel{background:none;border:none;color:var(--red);
+  cursor:pointer;font-size:17px;padding:2px;opacity:.7;}
 
-/* Settings groups */
-.sgrp{margin-top:20px;}
-.sgrptitle{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--t3);margin-bottom:6px;}
-.scard{border-radius:15px;overflow:hidden;}
-.srow{display:flex;align-items:center;gap:10px;padding:11px 13px;cursor:pointer;transition:.13s;border-bottom:1px solid rgba(255,255,255,.05);}
+/* sgrp */
+.sgrp{margin-top:18px;}
+.sgrptitle{font-size:10px;font-weight:700;letter-spacing:.6px;
+  text-transform:uppercase;color:var(--t3);margin-bottom:6px;}
+.scard{border-radius:14px;overflow:hidden;}
+.srow{display:flex;align-items:center;gap:10px;padding:11px 12px;
+  cursor:pointer;transition:.13s;
+  border-bottom:1px solid rgba(255,255,255,.05);}
 .srow:last-child{border-bottom:none;}
 .srow:active{background:rgba(255,255,255,.06);}
-.sico{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
-.icb{background:linear-gradient(135deg,rgba(191,95,255,.22),rgba(0,200,255,.22));}
-.icr{background:rgba(255,69,58,.17);}
+.sico{width:28px;height:28px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;flex-shrink:0;}
+.icb{background:linear-gradient(135deg,rgba(191,95,255,.2),rgba(0,200,255,.2));}
+.icr{background:rgba(255,69,58,.16);}
 .icg{background:rgba(255,255,255,.07);}
-.stxt{flex:1;} .sttl{font-size:13px;font-weight:500;} .ssub{font-size:10px;color:var(--t3);margin-top:1px;}
+.stxt{flex:1;}.sttl{font-size:13px;font-weight:500;}
+.ssub{font-size:10px;color:var(--t3);margin-top:1px;}
 .schev{color:var(--t3);font-size:13px;}
 
-/* ── BOTTOM NAV ── */
-#navwrap{flex-shrink:0;padding:7px 12px calc(7px + var(--sab));pointer-events:none;z-index:20;}
-#bnav{
-  display:flex;align-items:center;justify-content:space-around;padding:7px 8px;
-  border-radius:22px;background:rgba(8,3,20,.82);
-  backdrop-filter:blur(60px) saturate(2);-webkit-backdrop-filter:blur(60px) saturate(2);
-  border:1px solid rgba(255,255,255,.12);
-  box-shadow:0 1.5px 0 rgba(255,255,255,.15) inset,0 0 0 1px rgba(191,95,255,.12),
-             0 0 18px rgba(191,95,255,.09),0 12px 36px rgba(0,0,0,.5);
-  pointer-events:all;position:relative;overflow:hidden;
-}
-#bnav::before{content:'';position:absolute;left:0;right:0;top:0;height:45%;
-  background:linear-gradient(180deg,rgba(255,255,255,.05),transparent);border-radius:22px 22px 0 0;pointer-events:none;}
-.ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0;
-  cursor:pointer;transition:all .2s cubic-bezier(.34,1.4,.64,1);position:relative;min-height:44px;}
+/* ─── BOTTOM NAV ─── */
+#navwrap{flex-shrink:0;padding:6px 11px calc(6px + var(--sab));z-index:20;}
+#bnav{display:flex;align-items:center;justify-content:space-around;
+  padding:7px 8px;border-radius:22px;
+  background:rgba(7,2,18,.84);
+  backdrop-filter:blur(60px) saturate(2);
+  -webkit-backdrop-filter:blur(60px) saturate(2);
+  border:1px solid rgba(255,255,255,.11);
+  box-shadow:0 1.5px 0 rgba(255,255,255,.14) inset,
+             0 0 0 1px rgba(191,95,255,.11),
+             0 0 16px rgba(191,95,255,.09),
+             0 10px 32px rgba(0,0,0,.5);
+  position:relative;overflow:hidden;}
+#bnav::before{content:'';position:absolute;left:0;right:0;top:0;
+  height:45%;background:linear-gradient(180deg,rgba(255,255,255,.05),transparent);
+  border-radius:22px 22px 0 0;pointer-events:none;}
+
+.ni{flex:1;display:flex;flex-direction:column;align-items:center;
+  gap:3px;padding:5px 0;cursor:pointer;
+  transition:all .22s cubic-bezier(.34,1.4,.64,1);
+  position:relative;min-height:46px;}
 .ni:active{transform:scale(.78);}
-.nipill{width:36px;height:26px;border-radius:13px;display:flex;align-items:center;justify-content:center;
-  position:relative;transition:all .24s cubic-bezier(.34,1.4,.64,1);overflow:hidden;}
-.ni.on .nipill{width:48px;background:linear-gradient(135deg,rgba(191,95,255,.24),rgba(0,200,255,.24));
-  border:1px solid rgba(0,200,255,.33);box-shadow:0 0 12px rgba(0,200,255,.2),0 1px 0 rgba(255,255,255,.17) inset;}
-.ni.on .nipill::before{content:'';position:absolute;left:0;right:0;top:0;height:50%;
-  background:linear-gradient(180deg,rgba(255,255,255,.13),transparent);border-radius:13px 13px 0 0;}
-.nisvg{width:19px;height:19px;fill:none;stroke:var(--t3);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:all .24s;}
-.ni.on .nisvg{stroke:#00c8ff;filter:drop-shadow(0 0 4px rgba(0,200,255,.6));transform:scale(1.07);}
-.ni.on .nisvg path,.ni.on .nisvg rect,.ni.on .nisvg circle,.ni.on .nisvg line,.ni.on .nisvg ellipse{stroke:#00c8ff;}
-.nilbl{font-size:9px;font-weight:600;color:var(--t3);transition:.2s;line-height:1;}
+.nipill{width:36px;height:27px;border-radius:13px;
+  display:flex;align-items:center;justify-content:center;
+  position:relative;
+  transition:all .24s cubic-bezier(.34,1.4,.64,1);overflow:hidden;}
+.ni.on .nipill{width:50px;
+  background:linear-gradient(135deg,rgba(191,95,255,.24),rgba(0,200,255,.24));
+  border:1px solid rgba(0,200,255,.32);
+  box-shadow:0 0 12px rgba(0,200,255,.2),0 1px 0 rgba(255,255,255,.16) inset;}
+.ni.on .nipill::before{content:'';position:absolute;left:0;right:0;
+  top:0;height:50%;
+  background:linear-gradient(180deg,rgba(255,255,255,.13),transparent);
+  border-radius:13px 13px 0 0;}
+.nisvg{width:19px;height:19px;fill:none;stroke:var(--t3);
+  stroke-width:2;stroke-linecap:round;stroke-linejoin:round;
+  transition:all .24s cubic-bezier(.34,1.4,.64,1);flex-shrink:0;}
+.ni.on .nisvg{stroke:#00c8ff;
+  filter:drop-shadow(0 0 4px rgba(0,200,255,.6));
+  transform:scale(1.07);}
+.ni.on .nisvg path,.ni.on .nisvg rect,
+.ni.on .nisvg circle,.ni.on .nisvg line,.ni.on .nisvg ellipse,.ni.on .nisvg polyline{stroke:#00c8ff;}
+.nilbl{font-size:9px;font-weight:600;color:var(--t3);
+  transition:.2s;line-height:1;}
 .ni.on .nilbl{color:#00c8ff;font-weight:700;}
-.ndot{position:absolute;top:2px;right:calc(50% - 17px);width:6px;height:6px;border-radius:50%;
+/* live dot */
+.ni-play-dot{position:absolute;top:3px;right:calc(50% - 16px);
+  width:6px;height:6px;border-radius:50%;
   background:var(--red);display:none;}
-.ndot.v{display:block;}
-.tri{fill:var(--t3)!important;stroke:none!important;}
-.ni.on .tri{fill:#00c8ff!important;}
+.ni-play-dot.v{display:block;}
 
-/* ── TOAST ── */
-#toast{position:fixed;bottom:calc(100px + var(--sab));left:50%;
+/* ─── TOAST ─── */
+#toast{position:fixed;bottom:calc(96px + var(--sab));left:50%;
   transform:translateX(-50%) translateY(10px) scale(.93);
-  padding:8px 16px;border-radius:17px;
-  background:rgba(14,6,30,.93);border:1px solid rgba(255,255,255,.15);
-  backdrop-filter:blur(28px);color:var(--t1);font-size:12px;font-weight:500;
-  opacity:0;transition:.24s cubic-bezier(.34,1.4,.64,1);white-space:nowrap;
-  z-index:999;pointer-events:none;max-width:90vw;text-align:center;}
+  padding:8px 16px;border-radius:16px;
+  background:rgba(12,4,28,.93);border:1px solid rgba(255,255,255,.14);
+  backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);
+  color:var(--t1);font-size:12px;font-weight:500;
+  opacity:0;transition:.24s cubic-bezier(.34,1.4,.64,1);
+  white-space:nowrap;z-index:999;pointer-events:none;
+  max-width:88vw;text-align:center;}
 #toast.on{opacity:1;transform:translateX(-50%) translateY(0) scale(1);}
-
-/* ── PROGRESS BADGE ── */
-.pbadge{font-size:9px;font-weight:600;color:var(--acc);
-  background:rgba(0,200,255,.12);border:1px solid rgba(0,200,255,.22);
-  padding:1px 5px;border-radius:4px;}
 </style>
 </head>
 <body>
-<div id="mesh"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
+<div id="mesh">
+  <div class="blob b1"></div>
+  <div class="blob b2"></div>
+  <div class="blob b3"></div>
+</div>
 
 <div id="app">
 
-<!-- TOPBAR -->
-<div id="topbar">
-  <div class="logo">
+  <!-- TOPBAR -->
+  <div id="topbar">
     <div class="logo-img"><img src="app_icon.png" alt="O"></div>
     <span class="logo-name">OrionTV</span>
   </div>
-  <button class="hbtn" onclick="nav('fav',this)" title="Favoriler">
-    <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-  </button>
-</div>
 
-<!-- MINI PLAYER -->
-<div id="mini-player">
-  <div class="mp-inner">
-    <div class="mp-video-wrap g">
-      <video id="vid" playsinline webkit-playsinline preload="auto" style="touch-action:none;"></video>
-      <div class="mp-bar">
-        <div class="mp-info">
-          <div class="mp-name" id="mpname">—</div>
-          <div class="mp-grp" id="mpgrp">—</div>
+  <!-- MINI PLAYER -->
+  <div id="mplayer">
+    <div class="mpi">
+      <div class="mpwrap g">
+        <video id="vid" playsinline webkit-playsinline preload="auto"></video>
+        <div class="mpbar">
+          <div class="mpinfo">
+            <div class="mpname" id="mpname">—</div>
+            <div class="mpgrp" id="mpgrp">—</div>
+          </div>
+          <button class="mpc" onclick="skipCh(-1)">
+            <svg viewBox="0 0 24 24"><polygon points="19,20 9,12 19,4"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
+          </button>
+          <button class="mpc play" id="ppbtn" onclick="togglePlay()">
+            <svg id="ppico" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
+          </button>
+          <button class="mpc" onclick="skipCh(1)">
+            <svg viewBox="0 0 24 24"><polygon points="5,4 15,12 5,20"/><line x1="19" y1="4" x2="19" y2="20"/></svg>
+          </button>
+          <button class="mpx" onclick="stopPlayer()">✕</button>
         </div>
-        <button class="mp-ctrl" onclick="skipCh(-1)">
-          <svg viewBox="0 0 24 24"><polygon points="19,20 9,12 19,4"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
-        </button>
-        <button class="mp-ctrl play" id="ppbtn" onclick="togglePlay()">
-          <svg id="ppico" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
-        </button>
-        <button class="mp-ctrl" onclick="skipCh(1)">
-          <svg viewBox="0 0 24 24"><polygon points="5,4 15,12 5,20"/><line x1="19" y1="4" x2="19" y2="20"/></svg>
-        </button>
-        <button class="mp-close" onclick="stopPlayer()">✕</button>
+        <div class="mpseek">
+          <div class="mptrack" id="mptrack"
+               onmousedown="seekStart(event)" ontouchstart="seekStart(event)">
+            <div class="mpbuf" id="mpbuf"></div>
+            <div class="mpprog" id="mpprog"></div>
+          </div>
+        </div>
+        <div class="mptime" id="mptime"></div>
       </div>
-      <div class="mp-seek-wrap" id="mpseekwrap">
-        <div class="mp-seek-track" id="mptrack" onmousedown="seekStart(event)" ontouchstart="seekStart(event)">
-          <div class="mp-seek-buf" id="mpbuf"></div>
-          <div class="mp-seek-prog" id="mpprog"></div>
+    </div>
+  </div>
+
+  <!-- LIVE SCREEN -->
+  <div class="scr on" id="scr-live">
+    <div class="sw">
+      <div class="srch g">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input id="lq" placeholder="Kanal ara…" oninput="doFilter()">
+      </div>
+    </div>
+    <div class="cats" id="lcats"></div>
+    <div class="shdr">
+      <span class="sttl">Canlı TV</span>
+      <span class="scnt" id="lcnt"></span>
+    </div>
+    <div class="lscr"><div class="chl" id="llist"></div></div>
+    <div id="lempty" class="empty" style="display:none">
+      <svg width="60" height="60" viewBox="0 0 24 24" stroke="currentColor"
+           stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" fill="none">
+        <circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none"/>
+        <circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="10"/>
+      </svg>
+      <div class="ettl">Canlı Kanal Yok</div>
+      <div class="esub">Ayarlar'dan M3U veya Xtream ile kanal ekle</div>
+      <button class="ebtn" onclick="goSettings()">Kaynak Ekle</button>
+    </div>
+  </div>
+
+  <!-- FAV SCREEN -->
+  <div class="scr" id="scr-fav">
+    <div class="shdr" style="padding-top:6px">
+      <span class="sttl">Favoriler</span>
+      <span class="scnt" id="favcnt"></span>
+    </div>
+    <div class="fscr"><div class="chl" id="favlist"></div></div>
+    <div id="favempty" class="empty" style="display:none">
+      <div style="font-size:44px;opacity:.18">🤍</div>
+      <div class="ettl">Favori Yok</div>
+      <div class="esub">Kanal listesinde ❤️ ile ekle</div>
+    </div>
+  </div>
+
+  <!-- SETTINGS SCREEN -->
+  <div class="scr" id="scr-settings">
+    <div class="stitle">Ayarlar</div>
+
+    <div class="stabs">
+      <div class="stab on" onclick="stab('m3u',this)">🔗 M3U</div>
+      <div class="stab" onclick="stab('xtream',this)">📡 Xtream</div>
+      <div class="stab" onclick="stab('file',this)">📂 Dosya</div>
+    </div>
+
+    <!-- M3U PANEL -->
+    <div class="spanel on" id="pm3u">
+      <div class="ibox">💡 <span>M3U linkini yapıştır. Canlı kanallar <b>otomatik yüklenir</b>.</span></div>
+      <div class="fw"><span class="flbl">Kaynak Adı</span>
+        <input class="ginp" id="mname" placeholder="Ev IPTV"></div>
+      <div class="fw"><span class="flbl">M3U URL veya İçerik</span>
+        <textarea class="gta" id="murl"
+          placeholder="http://sunucu.com/playlist.m3u&#10;veya M3U içeriğini buraya yapıştır"></textarea>
+      </div>
+      <button class="btnp" id="mbtn" onclick="doLoadM3U()">Yükle</button>
+    </div>
+
+    <!-- XTREAM PANEL -->
+    <div class="spanel" id="pxtream">
+      <div class="ibox">📡 <span>Sunucu bilgilerini gir. Canlı kanallar <b>otomatik yüklenir</b>.</span></div>
+      <div class="fw"><span class="flbl">Kaynak Adı</span>
+        <input class="ginp" id="xname" placeholder="Ev IPTV"></div>
+      <div class="fw"><span class="flbl">Sunucu Adresi</span>
+        <input class="ginp" id="xhost" type="url" placeholder="http://sunucu.com:8080"
+               autocorrect="off" autocapitalize="none" spellcheck="false"></div>
+      <div class="fw"><span class="flbl">Kullanıcı Adı</span>
+        <input class="ginp" id="xuser" type="text" placeholder="kullanici"
+               autocorrect="off" autocapitalize="none" spellcheck="false"></div>
+      <div class="fw"><span class="flbl">Şifre</span>
+        <div class="pw">
+          <input class="ginp" id="xpass" type="password" placeholder="••••••"
+                 autocorrect="off" autocapitalize="none" spellcheck="false">
+          <button class="peye" id="peye" onclick="togglePwd()">👁</button>
         </div>
       </div>
-      <div class="mp-time" id="mptime"></div>
+      <button class="btnp" id="xbtn" onclick="doLoadXtream()">Bağlan ve Yükle</button>
     </div>
-  </div>
-</div>
 
-<!-- LIVE SCREEN -->
-<div class="scr on" id="scr-live">
-  <div class="srch-wrap"><div class="srch g"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><input id="lq" placeholder="Kanal ara…" oninput="doFilter('live')"></div></div>
-  <div class="cats" id="lcats"></div>
-  <div class="shdr"><span class="sttl">Canlı TV</span><span class="scnt" id="lcnt"></span></div>
-  <div class="lscroll"><div class="chlist" id="llist"></div></div>
-  <div id="lempty" class="empty" style="display:none">
-    <svg width="60" height="60" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" fill="none"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7" fill="none"/><circle cx="12" cy="12" r="11" fill="none"/></svg>
-    <div class="empty-ttl">Canlı Kanal Yok</div><div class="empty-sub">Ayarlar'dan kaynak ekle</div>
-    <button class="empty-btn" onclick="nav('settings',qs('[data-s=settings]'))">Kaynak Ekle</button>
-  </div>
-</div>
-
-<!-- VOD SCREEN -->
-<div class="scr" id="scr-vod">
-  <div class="srch-wrap"><div class="srch g"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><input id="vq" placeholder="Film ara…" oninput="doFilter('vod')"></div></div>
-  <div class="cats" id="vcats"></div>
-  <div class="shdr"><span class="sttl">Film</span><span class="scnt" id="vcnt"></span></div>
-  <div class="lscroll"><div class="chlist" id="vlist"></div></div>
-  <div id="vempty" class="empty" style="display:none">
-    <svg width="60" height="60" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" fill="none"><rect x="2" y="2" width="20" height="20" rx="3"/><path d="M7 2v20M17 2v20M2 12h20"/></svg>
-    <div class="empty-ttl">Film Yok</div><div class="empty-sub">Ayarlar → Xtream ile yükle</div>
-    <button class="empty-btn" onclick="nav('settings',qs('[data-s=settings]'))">Kaynak Ekle</button>
-  </div>
-</div>
-
-<!-- SERIES SCREEN -->
-<div class="scr" id="scr-series">
-  <div class="bc" id="bc"></div>
-  <div class="srch-wrap" id="ser-sw"><div class="srch g"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><input id="sq" placeholder="Dizi ara…" oninput="renderSeries()"></div></div>
-  <div class="shdr"><span class="sttl" id="sertitle">Dizi</span><span class="scnt" id="scnt"></span></div>
-  <div class="lscroll"><div class="chlist" id="slist"></div></div>
-  <div id="sempty" class="empty" style="display:none">
-    <svg width="60" height="60" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" fill="none"><rect x="2" y="7" width="20" height="13" rx="2"/><path d="M16 2H8M12 2v5"/><polygon points="10,11.5 16,14.5 10,17.5"/></svg>
-    <div class="empty-ttl">Dizi Yok</div><div class="empty-sub">Ayarlar → Xtream ile yükle</div>
-    <button class="empty-btn" onclick="nav('settings',qs('[data-s=settings]'))">Kaynak Ekle</button>
-  </div>
-</div>
-
-<!-- FAVORITES -->
-<div class="scr" id="scr-fav">
-  <div class="shdr" style="padding-top:6px"><span class="sttl">Favoriler</span><span class="scnt" id="favcnt"></span></div>
-  <div class="fav-scroll"><div class="chlist" id="favlist"></div></div>
-  <div id="favempty" class="empty" style="display:none"><div style="font-size:44px;opacity:.2">🤍</div><div class="empty-ttl">Favori Yok</div><div class="empty-sub">❤️ ile ekle</div></div>
-</div>
-
-<!-- SETTINGS -->
-<div class="scr" id="scr-settings">
-  <div class="stitle">Ayarlar</div>
-
-  <div class="stabs">
-    <div class="stab on" onclick="stab('m3u',this)">🔗 M3U</div>
-    <div class="stab" onclick="stab('xtream',this)">📡 Xtream</div>
-    <div class="stab" onclick="stab('file',this)">📂 Dosya</div>
-  </div>
-
-  <div class="spanel on" id="pm3u">
-    <div class="ibox">💡 <span>M3U linkini yapıştır. <b>Tüm içerikler otomatik ayrıştırılır.</b></span></div>
-    <div class="fwrap"><span class="flbl">Kaynak Adı</span><input class="ginp" id="mname" placeholder="Ev IPTV"></div>
-    <div class="fwrap"><span class="flbl">M3U URL veya İçerik</span>
-      <textarea class="gta" id="murl" placeholder="http://sunucu.com/playlist.m3u&#10;veya M3U içeriğini yapıştır"></textarea>
+    <!-- FILE PANEL -->
+    <div class="spanel" id="pfile">
+      <div class="ibox">📂 <span>İndirdiğin .m3u dosyasını seç. <b>En güvenilir yöntem.</b></span></div>
+      <div class="fw"><span class="flbl">Kaynak Adı</span>
+        <input class="ginp" id="fname" placeholder="Ev IPTV"></div>
+      <label class="flbl-c" for="finput">📂 M3U / M3U8 Dosyası Seç</label>
+      <input type="file" id="finput" accept=".m3u,.m3u8,.txt">
     </div>
-    <button class="btnp" id="mbtn" onclick="doLoadM3U()">Yükle</button>
-  </div>
 
-  <div class="spanel" id="pxtream">
-    <div class="ibox">📡 <span><b>Canlı+Film+Dizi</b> tek seferde yüklenir.</span></div>
-    <div class="fwrap"><span class="flbl">Kaynak Adı</span><input class="ginp" id="xname" placeholder="Ev IPTV"></div>
-    <div class="fwrap"><span class="flbl">Sunucu</span><input class="ginp" id="xhost" type="url" placeholder="http://sunucu.com:8080" autocorrect="off" autocapitalize="none" spellcheck="false"></div>
-    <div class="fwrap"><span class="flbl">Kullanıcı Adı</span><input class="ginp" id="xuser" type="text" placeholder="kullanici" autocorrect="off" autocapitalize="none" spellcheck="false"></div>
-    <div class="fwrap"><span class="flbl">Şifre</span>
-      <div class="pw-wrap"><input class="ginp" id="xpass" type="password" placeholder="şifre" autocorrect="off" autocapitalize="none" spellcheck="false">
-      <button class="peye" id="peye" onclick="togglePwd()">👁</button></div>
+    <!-- SOURCES LIST -->
+    <div class="sgrp">
+      <div class="sgrptitle">Kaynaklar</div>
+      <div id="srclist"></div>
     </div>
-    <button class="btnp" id="xbtn" onclick="doLoadXtream()">Bağlan — Hepsini Yükle</button>
-  </div>
 
-  <div class="spanel" id="pfile">
-    <div class="ibox">📂 <span>İndirdiğin .m3u dosyasını seç. <b>Tüm içerikler otomatik ayrıştırılır.</b></span></div>
-    <div class="fwrap"><span class="flbl">Kaynak Adı</span><input class="ginp" id="fname" placeholder="Ev IPTV"></div>
-    <label class="flbl-c" for="finput">📂 M3U / M3U8 Dosyası Seç</label>
-    <input type="file" id="finput" accept=".m3u,.m3u8,.txt">
-  </div>
-
-  <div class="sgrp"><div class="sgrptitle">Kaynaklar</div><div id="srclist"></div></div>
-
-  <div class="sgrp"><div class="sgrptitle">Yönetim</div>
-    <div class="scard g">
-      <div class="srow" onclick="exportFavs()"><div class="sico icb">📤</div><div class="stxt"><div class="sttl">Favorileri Dışa Aktar</div><div class="ssub">M3U olarak indir</div></div><span class="schev">›</span></div>
-      <div class="srow" onclick="clearAll()"><div class="sico icr">🗑</div><div class="stxt"><div class="sttl">Tümünü Temizle</div></div><span class="schev">›</span></div>
-    </div>
-  </div>
-  <div class="sgrp"><div class="sgrptitle">Hakkında</div>
-    <div class="scard g">
-      <div class="srow"><div class="sico icg"><img src="app_icon.png" style="width:20px;height:20px;border-radius:5px;object-fit:cover"></div><div class="stxt"><div class="sttl">OrionTV v2</div><div class="ssub">Kişisel IPTV</div></div></div>
-      <div class="srow" onclick="toast2('Safari → Paylaş → Ana Ekrana Ekle')"><div class="sico icb">📱</div><div class="stxt"><div class="sttl">Ana Ekrana Ekle</div><div class="ssub">Safari → Paylaş → Ana Ekrana Ekle</div></div><span class="schev">›</span></div>
-    </div>
-  </div>
-</div>
-
-<!-- BOTTOM NAV -->
-<div id="navwrap">
-  <div id="bnav">
-    <div class="ni on" data-s="live" onclick="nav('live',this)">
-      <div class="nipill">
-        <svg class="nisvg" viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none"/>
-          <circle cx="12" cy="12" r="6"/>
-          <circle cx="12" cy="12" r="10"/>
-        </svg>
+    <!-- MANAGEMENT -->
+    <div class="sgrp">
+      <div class="sgrptitle">Yönetim</div>
+      <div class="scard g">
+        <div class="srow" onclick="exportFavs()">
+          <div class="sico icb">📤</div>
+          <div class="stxt"><div class="sttl">Favorileri Dışa Aktar</div><div class="ssub">M3U olarak indir</div></div>
+          <span class="schev">›</span>
+        </div>
+        <div class="srow" onclick="clearAll()">
+          <div class="sico icr">🗑</div>
+          <div class="stxt"><div class="sttl">Tümünü Temizle</div><div class="ssub">Kanallar ve favoriler</div></div>
+          <span class="schev">›</span>
+        </div>
       </div>
-      <span class="nilbl">Canlı</span>
-      <span class="ndot" id="dotlive"></span>
     </div>
-    <div class="ni" data-s="vod" onclick="nav('vod',this)">
-      <div class="nipill">
-        <svg class="nisvg" viewBox="0 0 24 24">
-          <rect x="2" y="3" width="20" height="14" rx="2.5"/>
-          <path d="M8 21h8M12 17v4"/>
-          <polygon points="10,7.5 16,10.5 10,13.5" class="tri"/>
-        </svg>
+
+    <!-- ABOUT -->
+    <div class="sgrp">
+      <div class="sgrptitle">Hakkında</div>
+      <div class="scard g">
+        <div class="srow">
+          <div class="sico icg">
+            <img src="app_icon.png" style="width:20px;height:20px;border-radius:5px;object-fit:cover">
+          </div>
+          <div class="stxt"><div class="sttl">OrionTV</div><div class="ssub">Versiyon 2.0 — Kişisel IPTV</div></div>
+        </div>
+        <div class="srow" onclick="toast2('Safari → Paylaş → Ana Ekrana Ekle')">
+          <div class="sico icb">📱</div>
+          <div class="stxt"><div class="sttl">Ana Ekrana Ekle</div><div class="ssub">Safari → Paylaş → Ana Ekrana Ekle</div></div>
+          <span class="schev">›</span>
+        </div>
       </div>
-      <span class="nilbl">Film</span>
-      <span class="ndot" id="dotvod"></span>
-    </div>
-    <div class="ni" data-s="series" onclick="nav('series',this)">
-      <div class="nipill">
-        <svg class="nisvg" viewBox="0 0 24 24">
-          <rect x="2" y="7" width="20" height="13" rx="2.5"/>
-          <path d="M16 2H8M12 2v5"/>
-          <polygon points="10,11.5 16,14.5 10,17.5" class="tri"/>
-        </svg>
-      </div>
-      <span class="nilbl">Dizi</span>
-      <span class="ndot" id="dotseries"></span>
-    </div>
-    <div class="ni" data-s="settings" onclick="nav('settings',this)">
-      <div class="nipill">
-        <svg class="nisvg" viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="3"/>
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-        </svg>
-      </div>
-      <span class="nilbl">Ayarlar</span>
     </div>
   </div>
-</div>
+
+  <!-- BOTTOM NAV -->
+  <div id="navwrap">
+    <div id="bnav">
+
+      <!-- Canlı -->
+      <div class="ni on" data-s="live" onclick="goNav('live',this)">
+        <div class="nipill">
+          <svg class="nisvg" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none"/>
+            <circle cx="12" cy="12" r="6"/>
+            <circle cx="12" cy="12" r="10"/>
+          </svg>
+        </div>
+        <span class="nilbl">Canlı</span>
+        <span class="ni-play-dot" id="pdot"></span>
+      </div>
+
+      <!-- Favoriler -->
+      <div class="ni" data-s="fav" onclick="goNav('fav',this)">
+        <div class="nipill">
+          <svg class="nisvg" viewBox="0 0 24 24">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06
+                     a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78
+                     1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+          </svg>
+        </div>
+        <span class="nilbl">Favoriler</span>
+      </div>
+
+      <!-- Ayarlar -->
+      <div class="ni" data-s="settings" onclick="goNav('settings',this)">
+        <div class="nipill">
+          <svg class="nisvg" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83
+                     l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21
+                     a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0
+                     -1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0
+                     4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65
+                     0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1
+                     2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0
+                     1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65
+                     0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65
+                     0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09
+                     a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </div>
+        <span class="nilbl">Ayarlar</span>
+      </div>
+
+    </div>
+  </div>
+
 </div><!-- #app -->
 <div id="toast"></div>
 
 <script>
 'use strict';
-// ── UTILS ──────────────────────────────────────────────────
-const qs=s=>document.querySelector(s);
-function esc(s=''){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-function mkuid(n,u){let h=0,s=(n||'')+(u||'');for(let i=0;i<s.length;i++)h=Math.imul(31,h)+s.charCodeAt(i)|0;return'u'+Math.abs(h).toString(36);}
-function fmt(s){if(!isFinite(s)||s<=0)return'';const m=Math.floor(s/60),sc=Math.floor(s%60);return m+':'+(sc<10?'0':'')+sc;}
-function toast2(m,d=2600){const t=qs('#toast');t.textContent=m;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),d);}
 
-// ── STATE ──────────────────────────────────────────────────
-let DB={live:[],vod:[],series:[]};
-let FIL={live:[],vod:[],series:[]};
-let CAT={live:'Tümü',vod:'Tümü',series:'Tümü'};
-let FAVS=new Set(), SRCS=[], PROG={};
-let curCh=null, curType='live', curList=[], curIdx=-1;
-let seekActive=false;
-// series nav
-let serView='list', serSel=null, serSeason=null;
-
-// ── STORAGE ────────────────────────────────────────────────
-function load(){
-  try{const d=localStorage.getItem('otv_db');if(d){const p=JSON.parse(d);DB.live=p.live||[];DB.vod=p.vod||[];DB.series=p.series||[];}}catch(e){}
-  try{const f=localStorage.getItem('otv_fav');if(f)FAVS=new Set(JSON.parse(f));}catch(e){}
-  try{const s=localStorage.getItem('otv_src');if(s)SRCS=JSON.parse(s);}catch(e){}
-  try{const p=localStorage.getItem('otv_prog');if(p)PROG=JSON.parse(p);}catch(e){}
+/* ══════════════════════════════════════════════
+   UTILS
+══════════════════════════════════════════════ */
+const $  = id => document.getElementById(id);
+const qs = s  => document.querySelector(s);
+function esc(s){
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
+                .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-let _saveT;
-function saveDB(){clearTimeout(_saveT);_saveT=setTimeout(()=>{
-  try{localStorage.setItem('otv_db',JSON.stringify({live:DB.live.slice(0,6000),vod:DB.vod.slice(0,6000),series:DB.series.slice(0,6000)}));}
-  catch(e){try{localStorage.setItem('otv_db',JSON.stringify({live:DB.live.slice(0,1000),vod:DB.vod.slice(0,1000),series:DB.series.slice(0,1000)}));}catch(e2){}}
-},400);}
-function saveFav(){try{localStorage.setItem('otv_fav',JSON.stringify([...FAVS]));}catch(e){}}
-function saveSrc(){try{localStorage.setItem('otv_src',JSON.stringify(SRCS));}catch(e){}}
-function saveProg(){try{localStorage.setItem('otv_prog',JSON.stringify(PROG));}catch(e){}}
+function mkuid(a,b){
+  let h=0, s=(a||'')+(b||'');
+  for(let i=0;i<s.length;i++) h=Math.imul(31,h)+s.charCodeAt(i)|0;
+  return 'u'+Math.abs(h).toString(36);
+}
+function fmt(s){
+  if(!isFinite(s)||s<=0) return '';
+  const m=Math.floor(s/60), sc=Math.floor(s%60);
+  return m+':'+(sc<10?'0':'')+sc;
+}
+function toast2(msg, dur=2600){
+  const t=$('toast'); t.textContent=msg; t.classList.add('on');
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('on'),dur);
+}
 
-// ── M3U PARSER ─────────────────────────────────────────────
+/* ══════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════ */
+let channels = [];   // all live channels
+let filtered  = [];  // after search/cat filter
+let favs      = new Set();
+let srcs      = [];  // [{id,name,type,host?,user?,pass?,url?}]
+let activeCat = 'Tümü';
+
+let curCh   = null;
+let curIdx  = -1;
+let seeking = false;
+
+/* ══════════════════════════════════════════════
+   STORAGE  (deferred write to avoid freeze)
+══════════════════════════════════════════════ */
+function loadStorage(){
+  try{ const d=localStorage.getItem('otv_ch');
+       if(d) channels=JSON.parse(d); }catch(e){}
+  try{ const f=localStorage.getItem('otv_fav');
+       if(f) favs=new Set(JSON.parse(f)); }catch(e){}
+  try{ const s=localStorage.getItem('otv_src');
+       if(s) srcs=JSON.parse(s); }catch(e){}
+}
+
+let _saveCht;
+function saveCh(){
+  clearTimeout(_saveCht);
+  _saveCht=setTimeout(()=>{
+    try{
+      // keep max 8000 to avoid quota
+      localStorage.setItem('otv_ch', JSON.stringify(channels.slice(0,8000)));
+    }catch(e){
+      try{ localStorage.setItem('otv_ch', JSON.stringify(channels.slice(0,2000))); }catch(e2){}
+    }
+  }, 600);
+}
+function saveFav(){ try{ localStorage.setItem('otv_fav', JSON.stringify([...favs])); }catch(e){} }
+function saveSrc(){ try{ localStorage.setItem('otv_src', JSON.stringify(srcs)); }catch(e){} }
+
+/* ══════════════════════════════════════════════
+   M3U PARSER  — only keeps live channels
+══════════════════════════════════════════════ */
 function parseM3U(text){
-  const res={live:[],vod:[],series:[]};
+  const result=[];
   const lines=text.split('\n');
   let cur=null;
   for(let i=0;i<lines.length;i++){
     const l=lines[i].trim();
-    if(!l)continue;
+    if(!l) continue;
     if(l.startsWith('#EXTINF')){
       cur={name:'',group:'Genel',logo:'',url:''};
-      const nm=l.match(/,(.+)$/);if(nm)cur.name=nm[1].trim();
-      const gr=l.match(/group-title="([^"]*)"/i);if(gr)cur.group=(gr[1]||'Genel').trim();
-      const lo=l.match(/tvg-logo="([^"]*)"/i);if(lo)cur.logo=lo[1].trim();
-    }else if(cur&&!l.startsWith('#')){
-      cur.url=l;cur.uid=mkuid(cur.name,l);
-      const t=classify(cur.group,cur.name,l);
-      res[t].push(cur);cur=null;
+      const nm=l.match(/,(.+)$/);
+      if(nm) cur.name=nm[1].trim();
+      const gr=l.match(/group-title="([^"]*)"/i);
+      if(gr) cur.group=(gr[1]||'').trim()||'Genel';
+      const lo=l.match(/tvg-logo="([^"]*)"/i);
+      if(lo) cur.logo=lo[1].trim();
+    } else if(cur && !l.startsWith('#')){
+      cur.url=l;
+      cur.uid=mkuid(cur.name, l);
+      // skip obvious VOD/series entries
+      if(!isVodOrSeries(cur.group, cur.name, l)){
+        result.push(cur);
+      }
+      cur=null;
     }
   }
-  return res;
-}
-function classify(g,n,u){
-  const gs=(g||'').toLowerCase(),ns=(n||'').toLowerCase(),us=(u||'').toLowerCase();
-  if(/\/series\//.test(us)||/\b(series|dizi|sezon|season|serial)\b/.test(gs+' '+ns))return'series';
-  if(/\/(movie|vod|film)\//i.test(us)||/\b(movie|film|vod|sinema|cinema)\b/.test(gs+' '+ns))return'vod';
-  return'live';
+  return result;
 }
 
-// ── FETCH ──────────────────────────────────────────────────
-async function sfetch(url,ms=13000){
-  const proxies=[
-    ()=>fetch(url,{signal:AbortSignal.timeout(ms)}),
-    ()=>fetch('https://corsproxy.io/?'+encodeURIComponent(url),{signal:AbortSignal.timeout(ms)}),
-    ()=>fetch('https://api.allorigins.win/raw?url='+encodeURIComponent(url),{signal:AbortSignal.timeout(ms)}),
-    ()=>fetch('https://thingproxy.freeboard.io/fetch/'+url,{signal:AbortSignal.timeout(ms)}),
+function isVodOrSeries(g,n,u){
+  const s=(g+' '+n+' '+u).toLowerCase();
+  return /\/series\/|\/movie\/|\/vod\//.test(s)
+      || /\b(movie|vod|series|sinema|cinema|serial)\b/.test(s);
+}
+
+/* ══════════════════════════════════════════════
+   FETCH  — tries direct then 3 proxies
+══════════════════════════════════════════════ */
+async function sfetch(url, ms=13000){
+  const attempts=[
+    ()=>fetch(url, {signal:AbortSignal.timeout(ms)}),
+    ()=>fetch('https://corsproxy.io/?'+encodeURIComponent(url), {signal:AbortSignal.timeout(ms)}),
+    ()=>fetch('https://api.allorigins.win/raw?url='+encodeURIComponent(url), {signal:AbortSignal.timeout(ms)}),
+    ()=>fetch('https://thingproxy.freeboard.io/fetch/'+url, {signal:AbortSignal.timeout(ms)}),
   ];
-  for(const fn of proxies){
-    try{const r=await fn();if(r.ok){const t=await r.text();if(t&&t.length>30)return t;}}catch(e){}
+  for(const fn of attempts){
+    try{
+      const r=await fn();
+      if(r.ok){
+        const t=await r.text();
+        if(t && t.length>20) return t;
+      }
+    }catch(e){ /* try next */ }
   }
-  throw new Error('fetch_failed');
+  throw new Error('all_failed');
 }
 
-// ── LOAD M3U ───────────────────────────────────────────────
+/* ══════════════════════════════════════════════
+   LOAD M3U
+══════════════════════════════════════════════ */
 async function doLoadM3U(){
-  const raw=(qs('#murl').value||'').trim();
-  const name=(qs('#mname').value||'').trim()||'M3U Kaynak';
-  if(!raw){toast2('⚠️ URL veya içerik gir');return;}
-  if(raw.startsWith('#EXTM3U')||raw.includes('#EXTINF')){applyParsed(parseM3U(raw),name,'m3u',{});return;}
-  if(!raw.startsWith('http')){toast2('⚠️ http:// ile başlamalı');return;}
-  // detect xtream url
+  const raw=($('murl').value||'').trim();
+  const name=($('mname').value||'').trim() || 'M3U Kaynak';
+  if(!raw){ toast2('⚠️ URL veya M3U içeriği gir'); return; }
+
+  // pasted content
+  if(raw.startsWith('#EXTM3U') || raw.includes('#EXTINF')){
+    applyChannels(parseM3U(raw), name, 'm3u', {});
+    return;
+  }
+  if(!raw.startsWith('http')){ toast2('⚠️ http:// ile başlamalı'); return; }
+
+  // detect xtream URL
   try{
     const u=new URL(raw);
-    const user=u.searchParams.get('username'),pass=u.searchParams.get('password');
-    if(user&&pass){qs('#xhost').value=u.origin;qs('#xuser').value=user;qs('#xpass').value=pass;stab('xtream',document.querySelectorAll('.stab')[1]);toast2('💡 Xtream bilgileri aktarıldı');setTimeout(doLoadXtream,300);return;}
+    const user=u.searchParams.get('username');
+    const pass=u.searchParams.get('password');
+    if(user && pass){
+      $('xhost').value=u.origin;
+      $('xuser').value=user;
+      $('xpass').value=pass;
+      stab('xtream', document.querySelectorAll('.stab')[1]);
+      toast2('💡 Xtream bilgileri aktarıldı…');
+      setTimeout(doLoadXtream, 300);
+      return;
+    }
   }catch(e){}
-  setB('mbtn','⏳ Yükleniyor…',true);
+
+  setBtn('mbtn','⏳ Yükleniyor…',true);
   try{
     const txt=await sfetch(raw);
-    if(txt.includes('#EXTINF')||txt.includes('#EXTM3U'))applyParsed(parseM3U(txt),name,'m3u',{url:raw});
-    else toast2('❌ Geçerli M3U bulunamadı — Dosya yöntemini dene');
-  }catch(e){toast2('❌ Yüklenemedi — CORS engeli. Dosya yöntemi dene.');}
-  finally{setB('mbtn','Yükle',false);}
+    if(txt.includes('#EXTINF') || txt.includes('#EXTM3U')){
+      applyChannels(parseM3U(txt), name, 'm3u', {url:raw});
+    } else {
+      toast2('❌ M3U bulunamadı — Dosya yöntemini dene');
+    }
+  }catch(e){
+    toast2('❌ Yüklenemedi — CORS engeli. Dosya yöntemi dene.');
+  }finally{
+    setBtn('mbtn','Yükle',false);
+  }
 }
 
-// ── LOAD XTREAM ────────────────────────────────────────────
+/* ══════════════════════════════════════════════
+   LOAD XTREAM  — only live streams
+══════════════════════════════════════════════ */
 async function doLoadXtream(){
-  const host=(qs('#xhost').value||'').trim().replace(/\/+$/,'');
-  const user=(qs('#xuser').value||'').trim();
-  const pass=(qs('#xpass').value||'').trim();
-  const name=(qs('#xname').value||'').trim()||'Xtream Kaynak';
-  if(!host){toast2('⚠️ Sunucu gir');return;}
-  if(!user){toast2('⚠️ Kullanıcı adı gir');return;}
-  if(!pass){toast2('⚠️ Şifre gir');return;}
-  if(!host.startsWith('http')){toast2('⚠️ http:// ile başlamalı');return;}
-  setB('xbtn','⏳ Bağlanıyor…',true);
+  const host=($('xhost').value||'').trim().replace(/\/+$/,'');
+  const user=($('xuser').value||'').trim();
+  const pass=($('xpass').value||'').trim();
+  const name=($('xname').value||'').trim() || 'Xtream Kaynak';
+
+  if(!host){ toast2('⚠️ Sunucu gir'); return; }
+  if(!user){ toast2('⚠️ Kullanıcı adı gir'); return; }
+  if(!pass){ toast2('⚠️ Şifre gir'); return; }
+  if(!host.startsWith('http')){ toast2('⚠️ http:// ile başlamalı'); return; }
+
+  setBtn('xbtn','⏳ Bağlanıyor…',true);
+
   const e=encodeURIComponent;
   const base=`${host}/player_api.php?username=${e(user)}&password=${e(pass)}`;
+
   // auth check
-  try{const at=await sfetch(base,10000);const a=JSON.parse(at);if(a?.user_info?.auth===0){toast2('❌ Kullanıcı adı veya şifre hatalı');setB('xbtn','Bağlan — Hepsini Yükle',false);return;}}catch(ex){}
-
-  const aMap={live:'get_live_streams',vod:'get_vod_streams',series:'get_series'};
-  const cMap={live:'get_live_categories',vod:'get_vod_categories',series:'get_series_categories'};
-  const live=[],vod=[],series=[];
-
-  for(const t of['live','vod','series']){
-    toast2(`⏳ ${t==='live'?'Canlı TV':t==='vod'?'Filmler':'Diziler'} yükleniyor…`);
-    try{
-      const [stxt,ctxt]=await Promise.all([
-        sfetch(`${base}&action=${aMap[t]}`,15000),
-        sfetch(`${base}&action=${cMap[t]}`,10000).catch(()=>'[]'),
-      ]);
-      const streams=JSON.parse(stxt);
-      if(!Array.isArray(streams)||!streams.length)continue;
-      let cats=[];try{cats=JSON.parse(ctxt);}catch(ex){}
-      const cn={};cats.forEach(c=>{cn[c.category_id]=c.category_name;});
-      const ext=t==='live'?'ts':'m3u8';
-      const seg=t==='live'?'live':t==='vod'?'movie':'series';
-      const arr=streams.map(item=>{
-        const sid=item.stream_id||item.vod_id||item.series_id||'';
-        const url=`${host}/${seg}/${e(user)}/${e(pass)}/${sid}.${ext}`;
-        return{name:item.name||item.title||'?',group:cn[item.category_id]||item.category_name||'Genel',
-          logo:item.stream_icon||item.cover||item.movie_image||'',url,uid:mkuid(item.name||'',String(sid)),_src:''};
-      });
-      if(t==='live')live.push(...arr);
-      else if(t==='vod')vod.push(...arr);
-      else series.push(...arr);
-    }catch(ex){console.warn('xtream',t,ex);}
-  }
-
-  if(!live.length&&!vod.length&&!series.length){
-    // fallback M3U
-    const m3uUrl=`${host}/get.php?username=${e(user)}&password=${e(pass)}&type=m3u_plus&output=ts`;
-    try{const txt=await sfetch(m3uUrl,15000);if(txt.includes('#EXTINF')||txt.includes('#EXTM3U')){applyParsed(parseM3U(txt),name,'xtream',{host,user,pass});setB('xbtn','Bağlan — Hepsini Yükle',false);return;}}catch(ex){}
-    toast2('❌ Bağlanamadı. Bilgileri ve sunucu adresini kontrol et.');
-    setB('xbtn','Bağlan — Hepsini Yükle',false);return;
-  }
-  applyParsed({live,vod,series},name,'xtream',{host,user,pass});
-  setB('xbtn','Bağlan — Hepsini Yükle',false);
-}
-
-// ── APPLY PARSED ───────────────────────────────────────────
-function applyParsed(parsed,name,type,cfg){
-  const sid=mkuid(name,JSON.stringify(cfg));
-  SRCS=SRCS.filter(s=>s.id!==sid);
-  SRCS.push({id:sid,name,type,...cfg});
-  // tag & merge
-  ['live','vod','series'].forEach(t=>{
-    if(parsed[t]&&parsed[t].length){
-      const tagged=parsed[t].map(c=>({...c,_src:sid}));
-      DB[t]=[...DB[t].filter(c=>c._src!==sid),...tagged];
+  try{
+    const at=await sfetch(base, 8000);
+    const a=JSON.parse(at);
+    if(a?.user_info?.auth===0){
+      toast2('❌ Kullanıcı adı veya şifre hatalı');
+      setBtn('xbtn','Bağlan ve Yükle',false);
+      return;
     }
-  });
-  const tot=parsed.live.length+parsed.vod.length+parsed.series.length;
-  toast2(`✅ ${tot} içerik (📺${parsed.live.length} 🎬${parsed.vod.length} 🎭${parsed.series.length})`);
-  saveDB();saveSrc();
-  requestAnimationFrame(()=>{
-    renderDots();renderSrcList();
-    if(parsed.live.length)nav('live',qs('[data-s=live]'));
-    else if(parsed.vod.length)nav('vod',qs('[data-s=vod]'));
-    else nav('series',qs('[data-s=series]'));
-  });
+  }catch(ex){ /* ignore, continue */ }
+
+  // get live streams + categories
+  try{
+    toast2('⏳ Kanallar yükleniyor…');
+    const [stxt, ctxt]=await Promise.all([
+      sfetch(`${base}&action=get_live_streams`, 20000),
+      sfetch(`${base}&action=get_live_categories`, 10000).catch(()=>'[]'),
+    ]);
+
+    const streams=JSON.parse(stxt);
+    if(!Array.isArray(streams) || !streams.length){
+      throw new Error('empty_streams');
+    }
+
+    let cats=[];
+    try{ cats=JSON.parse(ctxt); }catch(ex){}
+    const cn={};
+    cats.forEach(c=>{ cn[c.category_id]=c.category_name; });
+
+    const result=streams.map(item=>{
+      const sid=item.stream_id||'';
+      const url=`${host}/live/${e(user)}/${e(pass)}/${sid}.ts`;
+      return {
+        name:  item.name||'?',
+        group: cn[item.category_id]||item.category_name||'Genel',
+        logo:  item.stream_icon||'',
+        url,
+        uid:   mkuid(item.name||'', String(sid)),
+      };
+    });
+
+    applyChannels(result, name, 'xtream', {host,user,pass});
+    setBtn('xbtn','Bağlan ve Yükle',false);
+    return;
+
+  }catch(ex){
+    // fallback: try M3U endpoint
+  }
+
+  // M3U fallback
+  const m3uUrl=`${host}/get.php?username=${e(user)}&password=${e(pass)}&type=m3u_plus&output=ts`;
+  try{
+    const txt=await sfetch(m3uUrl, 20000);
+    if(txt.includes('#EXTINF') || txt.includes('#EXTM3U')){
+      applyChannels(parseM3U(txt), name, 'xtream', {host,user,pass});
+      setBtn('xbtn','Bağlan ve Yükle',false);
+      return;
+    }
+  }catch(ex){}
+
+  toast2('❌ Bağlanamadı. Sunucu adresini ve bilgileri kontrol et.');
+  setBtn('xbtn','Bağlan ve Yükle',false);
 }
 
-function setB(id,txt,dis){const b=qs('#'+id);if(!b)return;b.textContent=txt;b.disabled=dis;b.style.opacity=dis?'.45':'1';}
+function setBtn(id,txt,dis){
+  const b=$(id); if(!b) return;
+  b.textContent=txt; b.disabled=dis; b.style.opacity=dis?'.4':'1';
+}
 
-// file input
-qs('#finput').addEventListener('change',function(e){
-  const f=e.target.files[0];if(!f)return;
-  const name=(qs('#fname').value||'').trim()||f.name;
-  const r=new FileReader();r.onload=ev=>applyParsed(parseM3U(ev.target.result),name,'m3u',{file:f.name});r.readAsText(f);
+/* file input */
+$('finput').addEventListener('change',function(e){
+  const f=e.target.files[0]; if(!f) return;
+  const name=($('fname').value||'').trim()||f.name;
+  const r=new FileReader();
+  r.onload=ev=>applyChannels(parseM3U(ev.target.result), name, 'file', {file:f.name});
+  r.readAsText(f);
 });
 
-// ── RENDER ─────────────────────────────────────────────────
-function renderScreen(type){
-  if(type==='series'){renderSeries();return;}
-  const all=DB[type];
-  const q=(qs(type==='live'?'#lq':'#vq')?.value||'').trim().toLowerCase();
-  const cat=CAT[type];
-  const hasFilter=q||cat!=='Tümü';
-  const list=hasFilter?FIL[type]:all;
+/* ══════════════════════════════════════════════
+   APPLY CHANNELS
+══════════════════════════════════════════════ */
+function applyChannels(list, name, type, cfg){
+  if(!list || !list.length){
+    toast2('❌ Kanal bulunamadı. Farklı kaynak veya dosya dene.');
+    return;
+  }
+  const sid=mkuid(name, JSON.stringify(cfg));
 
-  const listEl=qs(type==='live'?'#llist':'#vlist');
-  const emptyEl=qs(type==='live'?'#lempty':'#vempty');
-  const cntEl=qs(type==='live'?'#lcnt':'#vcnt');
-  const catsEl=qs(type==='live'?'#lcats':'#vcats');
-  if(!listEl)return;
+  // save source entry
+  srcs=srcs.filter(s=>s.id!==sid);
+  srcs.push({id:sid,name,type,...cfg});
+  saveSrc();
 
-  // Cats
-  const cats=['Tümü'];const seen=new Set();
-  all.forEach(c=>{if(c.group&&!seen.has(c.group)){seen.add(c.group);cats.push(c.group);}});
-  catsEl.innerHTML=cats.map(c=>`<div class="pill${c===cat?' on':''}" onclick="setCat('${type}','${c.replace(/'/g,"\\'")}')">${esc(c)}</div>`).join('');
+  // merge — remove old entries from same source, add new
+  const tagged=list.map(c=>({...c,_src:sid}));
+  channels=[...channels.filter(c=>c._src!==sid), ...tagged];
+  saveCh();
 
-  if(!all.length){listEl.innerHTML='';listEl.parentElement.style.display='none';emptyEl.style.display='';cntEl.textContent='';return;}
-  listEl.parentElement.style.display='';emptyEl.style.display='none';
+  toast2(`✅ ${list.length} kanal yüklendi`);
+
+  // reset filter
+  activeCat='Tümü';
+  requestAnimationFrame(()=>{
+    renderLive();
+    renderSrcList();
+    goNav('live', qs('[data-s=live]'));
+  });
+}
+
+/* ══════════════════════════════════════════════
+   RENDER LIVE
+══════════════════════════════════════════════ */
+function renderLive(){
+  const listEl=$('llist');
+  const emptyEl=$('lempty');
+  const cntEl=$('lcnt');
+  const catsEl=$('lcats');
+  if(!listEl) return;
+
+  // build category list
+  const cats=['Tümü'];
+  const seen=new Set();
+  channels.forEach(c=>{
+    if(c.group && !seen.has(c.group)){ seen.add(c.group); cats.push(c.group); }
+  });
+  catsEl.innerHTML=cats.map(c=>
+    `<div class="pill${c===activeCat?' on':''}" onclick="setCat('${c.replace(/'/g,"\\'")}')">
+      ${esc(c)}</div>`
+  ).join('');
+
+  // apply current filter
+  const q=($('lq')?.value||'').toLowerCase().trim();
+  let list=channels;
+  if(activeCat!=='Tümü') list=list.filter(c=>c.group===activeCat);
+  if(q) list=list.filter(c=>c.name.toLowerCase().includes(q));
+  filtered=list;
+
+  if(!channels.length){
+    listEl.innerHTML='';
+    listEl.parentElement.style.display='none';
+    emptyEl.style.display='';
+    cntEl.textContent='';
+    return;
+  }
+
+  listEl.parentElement.style.display='';
+  emptyEl.style.display='none';
 
   if(list.length){
-    cntEl.textContent=list.length+' içerik';
-    listEl.innerHTML=list.map((ch,i)=>chHtml(ch,i,type)).join('');
-  }else{
+    cntEl.textContent=list.length+' kanal';
+    // render in chunks to avoid freeze
+    renderChunk(list, listEl, 0, 50);
+  } else {
     cntEl.textContent='0 sonuç';
-    listEl.innerHTML=`<div class="empty" style="flex:none;padding:36px 16px"><div style="font-size:28px;opacity:.25">🔍</div><div class="empty-ttl">Sonuç Yok</div></div>`;
+    listEl.innerHTML=`<div class="empty" style="flex:none;padding:36px 16px">
+      <div style="font-size:28px;opacity:.2">🔍</div>
+      <div class="ettl">Sonuç Yok</div></div>`;
   }
 }
 
-function doFilter(type){
-  const q=(qs(type==='live'?'#lq':'#vq')?.value||'').toLowerCase().trim();
-  const cat=CAT[type];
-  let list=DB[type];
-  if(cat!=='Tümü')list=list.filter(c=>c.group===cat);
-  if(q)list=list.filter(c=>c.name.toLowerCase().includes(q));
-  FIL[type]=list;renderScreen(type);
-}
-
-function setCat(type,cat){CAT[type]=cat;doFilter(type);}
-
-// ── SERIES RENDER ──────────────────────────────────────────
-function seriesName(n){return(n||'').replace(/\s*[Ss](?:eason\s*|)\d+.*/i,'').replace(/\s*\d+[xX]\d+.*/,'').replace(/\s*[Ee]\d+.*/i,'').trim()||n||'?';}
-function seriesSeason(n){const m=(n||'').match(/[Ss](?:eason\s*|)(\d+)/i)||(n||'').match(/(\d+)[xX]/);return m?parseInt(m[1]):1;}
-function seriesEp(n){const m=(n||'').match(/[Ee](\d+)/i)||(n||'').match(/[xX](\d+)/);return m?parseInt(m[1]):0;}
-
-function renderSeries(){
-  const listEl=qs('#slist'),emptyEl=qs('#sempty'),cntEl=qs('#scnt'),ttlEl=qs('#sertitle'),bcEl=qs('#bc'),swEl=qs('#ser-sw');
-  if(!listEl)return;
-  if(!DB.series.length){listEl.innerHTML='';listEl.parentElement.style.display='none';emptyEl.style.display='';return;}
-  listEl.parentElement.style.display='';emptyEl.style.display='none';
-
-  if(serView==='list'){
-    swEl.style.display='';bcEl.innerHTML='';ttlEl.textContent='Dizi';
-    const q=(qs('#sq')?.value||'').toLowerCase().trim();
-    let items=DB.series;if(q)items=items.filter(c=>c.name.toLowerCase().includes(q));
-    // group by series name
-    const grps={};
-    items.forEach(ep=>{const gn=seriesName(ep.name);if(!grps[gn])grps[gn]={name:gn,logo:ep.logo,count:0};grps[gn].count++;});
-    const gl=Object.values(grps).sort((a,b)=>a.name.localeCompare(b.name,'tr'));
-    cntEl.textContent=gl.length+' dizi';
-    listEl.innerHTML=gl.map((g,i)=>{
-      const abbr=g.name.substring(0,3).toUpperCase();
-      const logo=g.logo?`<img src="${esc(g.logo)}" onerror="this.parentNode.innerHTML='<span>${esc(abbr)}</span>'" loading="lazy">`:`<span>${esc(abbr)}</span>`;
-      return`<div class="chi" onclick="openSeries('${esc(g.name.replace(/'/g,"\\'"))}')" style="animation-delay:${Math.min(i*.015,.3)}s">
-        <div class="ch-logo">${logo}</div>
-        <div class="chinfo"><div class="chname">${esc(g.name)}</div><div class="chmeta">${g.count} bölüm</div></div>
-        <div class="chright"><span style="color:var(--t3);font-size:16px">›</span></div>
-      </div>`;
-    }).join('');
-  }else if(serView==='seasons'){
-    swEl.style.display='none';
-    bcEl.innerHTML=`<span class="bci" onclick="serBack('list')">Dizi</span><span class="bcsep">›</span><span class="bci">${esc(serSel)}</span>`;
-    const eps=DB.series.filter(ep=>seriesName(ep.name)===serSel);
-    const seasons={};eps.forEach(ep=>{const s=seriesSeason(ep.name);if(!seasons[s])seasons[s]=[];seasons[s].push(ep);});
-    const sk=Object.keys(seasons).sort((a,b)=>parseInt(a)-parseInt(b));
-    ttlEl.textContent=serSel;cntEl.textContent=sk.length+' sezon';
-    listEl.innerHTML=sk.map((s,i)=>{
-      const cnt=seasons[s].length;const logo=seasons[s][0]?.logo||'';
-      const logoHTML=logo?`<img src="${esc(logo)}" onerror="this.parentNode.innerHTML='<span>S${s}</span>'" loading="lazy">`:`<span>S${s}</span>`;
-      return`<div class="chi" onclick="openSeason(${s})" style="animation-delay:${Math.min(i*.06,.4)}s">
-        <div class="ch-logo">${logoHTML}</div>
-        <div class="chinfo"><div class="chname">Sezon ${s}</div><div class="chmeta">${cnt} bölüm</div></div>
-        <div class="chright"><span style="color:var(--t3);font-size:16px">›</span></div>
-      </div>`;
-    }).join('');
-  }else if(serView==='episodes'){
-    swEl.style.display='none';
-    bcEl.innerHTML=`<span class="bci" onclick="serBack('list')">Dizi</span><span class="bcsep">›</span><span class="bci" onclick="serBack('seasons')">${esc(serSel)}</span><span class="bcsep">›</span><span class="bci">Sezon ${serSeason}</span>`;
-    const eps=DB.series.filter(ep=>seriesName(ep.name)===serSel&&seriesSeason(ep.name)===serSeason)
-      .sort((a,b)=>seriesEp(a.name)-seriesEp(b.name));
-    ttlEl.textContent=`Sezon ${serSeason}`;cntEl.textContent=eps.length+' bölüm';
-    listEl.innerHTML=eps.map((ep,i)=>{
-      const isNow=curCh&&curCh.uid===ep.uid;
-      const isFav=FAVS.has(ep.uid);
-      const abbr=ep.name.substring(0,3).toUpperCase();
-      const logo=ep.logo?`<img src="${esc(ep.logo)}" onerror="this.parentNode.innerHTML='<span>${esc(abbr)}</span>'" loading="lazy">`:`<span>${esc(abbr)}</span>`;
-      const prog=PROG[ep.uid];
-      return`<div class="chi${isNow?' now':''}" onclick="playCh('${ep.uid}','series')" style="animation-delay:${Math.min(i*.04,.35)}s">
-        ${isNow?'<div class="pbar"></div>':''}
-        <div class="ch-logo">${logo}</div>
-        <div class="chinfo"><div class="chname">${esc(ep.name)}</div><div class="chmeta">${prog?`<span class="pbadge">▶ ${fmt(prog)}</span> `:''}${esc(ep.group)}</div></div>
-        <div class="chright"><button class="favbtn${isFav?' on':''}" onclick="toggleFav(event,'${ep.uid}')">${isFav?'❤️':'🤍'}</button></div>
-      </div>`;
-    }).join('');
+function renderChunk(list, container, start, chunkSize){
+  const end=Math.min(start+chunkSize, list.length);
+  if(start===0) container.innerHTML='';
+  const frag=document.createDocumentFragment();
+  for(let i=start;i<end;i++){
+    const ch=list[i];
+    const el=document.createElement('div');
+    el.innerHTML=chHtml(ch,i);
+    const node=el.firstElementChild;
+    frag.appendChild(node);
+  }
+  container.appendChild(frag);
+  if(end<list.length){
+    requestAnimationFrame(()=>renderChunk(list, container, end, chunkSize));
   }
 }
-function openSeries(name){serSel=name;serView='seasons';renderSeries();}
-function openSeason(s){serSeason=s;serView='episodes';renderSeries();}
-function serBack(to){serView=to;if(to==='list'){serSel=null;}serSeason=null;renderSeries();}
 
-// ── CH HTML ────────────────────────────────────────────────
-function chHtml(ch,i,type){
-  const isFav=FAVS.has(ch.uid);const isNow=curCh&&curCh.uid===ch.uid;
+function chHtml(ch, i){
+  const isFav=favs.has(ch.uid);
+  const isNow=curCh && curCh.uid===ch.uid;
   const abbr=(ch.name||'').replace(/\s+/g,'').substring(0,3).toUpperCase()||'?';
-  const logo=ch.logo?`<img src="${esc(ch.logo)}" onerror="this.parentNode.innerHTML='<span>${esc(abbr)}</span>'" loading="lazy">`:`<span>${esc(abbr)}</span>`;
-  const prog=PROG[ch.uid];
-  return`<div class="chi${isNow?' now':''}" onclick="playCh('${ch.uid}','${type}')" style="animation-delay:${Math.min(i*.015,.3)}s">
+  const logo=ch.logo
+    ? `<img src="${esc(ch.logo)}" onerror="this.parentNode.innerHTML='<span>${esc(abbr)}</span>'" loading="lazy">`
+    : `<span>${esc(abbr)}</span>`;
+  return `<div class="chi${isNow?' now':''}" data-uid="${ch.uid}" onclick="playCh('${ch.uid}')"
+    style="animation-delay:${Math.min(i*.012,.3)}s">
     ${isNow?'<div class="pbar"></div>':''}
-    <div class="ch-logo">${logo}</div>
-    <div class="chinfo"><div class="chname">${esc(ch.name)}</div><div class="chmeta">${prog?`<span class="pbadge">▶ ${fmt(prog)}</span> `:''}${esc(ch.group)}</div></div>
-    <div class="chright"><button class="favbtn${isFav?' on':''}" onclick="toggleFav(event,'${ch.uid}')">${isFav?'❤️':'🤍'}</button></div>
+    <div class="chlogo">${logo}</div>
+    <div class="chinfo">
+      <div class="chname">${esc(ch.name)}</div>
+      <div class="chmeta">${esc(ch.group)}</div>
+    </div>
+    <div class="chr">
+      <button class="fb${isFav?' on':''}" data-uid="${ch.uid}"
+        onclick="toggleFav(event,'${ch.uid}')">${isFav?'❤️':'🤍'}</button>
+    </div>
   </div>`;
 }
 
-// ── PLAY ───────────────────────────────────────────────────
-function playCh(uid,type){
-  const all=DB[type];const ch=all.find(c=>c.uid===uid);if(!ch)return;
-  // Build list for prev/next
-  let list;
-  if(type==='series'&&serView==='episodes'){
-    list=DB.series.filter(ep=>seriesName(ep.name)===serSel&&seriesSeason(ep.name)===serSeason)
-      .sort((a,b)=>seriesEp(a.name)-seriesEp(b.name));
-  }else{
-    const q=(qs(type==='live'?'#lq':type==='vod'?'#vq':'#sq')?.value||'').toLowerCase().trim();
-    const cat=CAT[type];
-    list=(q||cat!=='Tümü')?FIL[type]:all;
-  }
-  curCh=ch;curType=type;curList=list;
-  curIdx=list.findIndex(c=>c.uid===uid);if(curIdx===-1)curIdx=0;
+function setCat(cat){
+  activeCat=cat;
+  doFilter();
+}
+function doFilter(){
+  renderLive();
+}
 
-  const v=qs('#vid');
+/* ══════════════════════════════════════════════
+   PLAY
+══════════════════════════════════════════════ */
+function playCh(uid){
+  const ch=channels.find(c=>c.uid===uid);
+  if(!ch) return;
+
+  curCh=ch;
+  curIdx=filtered.findIndex(c=>c.uid===uid);
+  if(curIdx===-1) curIdx=channels.indexOf(ch);
+
+  const v=$('vid');
   v.pause();
+  v.removeAttribute('src');
   v.src=ch.url;
   v.load();
 
-  qs('#mpname').textContent=ch.name;
-  qs('#mpgrp').textContent=ch.group;
-  qs('#mpprog').style.width='0';
-  qs('#mpbuf').style.width='0';
-  qs('#mptime').textContent='';
+  $('mpname').textContent=ch.name;
+  $('mpgrp').textContent=ch.group;
+  $('mpprog').style.width='0';
+  $('mpbuf').style.width='0';
+  $('mptime').textContent='';
   setIcon(false);
 
-  // Open mini player
-  const mp=qs('#mini-player');
-  mp.classList.add('open');
+  // open mini player
+  $('mplayer').classList.add('open');
 
-  // Restore position for VOD/series
-  const saved=PROG[ch.uid];
+  v.play()
+    .then(()=>setIcon(true))
+    .catch(()=>{ setIcon(false); toast2('▶ Play tuşuna bas'); });
 
-  v.play().then(()=>{
-    setIcon(true);
-    if(saved&&saved>5&&type!=='live'){v.currentTime=saved;}
-  }).catch(()=>{
-    setIcon(false);
-    toast2('▶ Oynatmak için play\'e bas');
-  });
+  // update now-playing marker without full re-render
+  document.querySelectorAll('.chi.now').forEach(el=>el.classList.remove('now'));
+  const el=document.querySelector(`.chi[data-uid="${uid}"]`);
+  if(el){
+    el.classList.add('now');
+    if(!el.querySelector('.pbar')){
+      const pb=document.createElement('div');
+      pb.className='pbar'; el.prepend(pb);
+    }
+  }
 
-  // Re-render to show now-playing
-  if(type==='series')renderSeries();else renderScreen(type);
+  // update nav dot
+  $('pdot').classList.add('v');
 }
 
 function stopPlayer(){
-  const v=qs('#vid');savePos();v.pause();v.removeAttribute('src');v.load();
-  qs('#mini-player').classList.remove('open');
-  curCh=null;
-  if(curType==='series')renderSeries();else renderScreen(curType);
-  renderFavs();
+  const v=$('vid');
+  v.pause(); v.removeAttribute('src'); v.load();
+  $('mplayer').classList.remove('open');
+  $('pdot').classList.remove('v');
+  curCh=null; curIdx=-1;
+  document.querySelectorAll('.chi.now').forEach(el=>{
+    el.classList.remove('now');
+    el.querySelector('.pbar')?.remove();
+  });
 }
 
 function togglePlay(){
-  const v=qs('#vid');
-  if(v.paused){v.play().then(()=>setIcon(true)).catch(()=>{});}
-  else{v.pause();setIcon(false);}
+  const v=$('vid');
+  if(v.paused){ v.play().then(()=>setIcon(true)).catch(()=>{}); }
+  else { v.pause(); setIcon(false); }
 }
 
 function setIcon(playing){
-  qs('#ppico').innerHTML=playing
-    ?'<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>'
-    :'<polygon points="5,3 19,12 5,21"/>';
+  $('ppico').innerHTML=playing
+    ? '<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>'
+    : '<polygon points="5,3 19,12 5,21"/>';
 }
 
 function skipCh(dir){
-  if(!curList.length)return;
+  const list=filtered.length ? filtered : channels;
+  if(!list.length) return;
   let idx=curIdx+dir;
-  if(idx<0)idx=curList.length-1;if(idx>=curList.length)idx=0;
-  playCh(curList[idx].uid,curType);
+  if(idx<0) idx=list.length-1;
+  if(idx>=list.length) idx=0;
+  playCh(list[idx].uid);
 }
 
-function savePos(){
-  if(!curCh)return;
-  const v=qs('#vid');
-  if(v.currentTime>5&&isFinite(v.duration)&&curType!=='live'){
-    PROG[curCh.uid]=v.currentTime;saveProg();
-  }
-}
-
-// Video events
+/* video events */
 (()=>{
-  const v=qs('#vid');
-  v.addEventListener('play',()=>setIcon(true));
-  v.addEventListener('pause',()=>setIcon(false));
-  v.addEventListener('ended',()=>{setIcon(false);savePos();});
-  v.addEventListener('error',()=>{toast2('❌ Oynatma hatası');setIcon(false);});
-  v.addEventListener('timeupdate',()=>{
-    updateSeek();
-    if(Math.floor(v.currentTime)%15===0&&curType!=='live')savePos();
-  });
+  const v=$('vid');
+  v.addEventListener('play',  ()=>setIcon(true));
+  v.addEventListener('pause', ()=>setIcon(false));
+  v.addEventListener('ended', ()=>setIcon(false));
+  v.addEventListener('error', ()=>{ toast2('❌ Oynatılamadı'); setIcon(false); });
+  v.addEventListener('timeupdate', updateSeek);
 })();
 
 function updateSeek(){
-  const v=qs('#vid');
-  if(!v.duration||!isFinite(v.duration)){qs('#mptime').textContent='';return;}
+  const v=$('vid');
+  if(!v.duration || !isFinite(v.duration)){
+    $('mptime').textContent='';
+    return;
+  }
   const r=v.currentTime/v.duration;
-  qs('#mpprog').style.width=(r*100).toFixed(2)+'%';
-  if(v.buffered.length)qs('#mpbuf').style.width=((v.buffered.end(v.buffered.length-1)/v.duration)*100).toFixed(2)+'%';
-  qs('#mptime').textContent=fmt(v.currentTime)+' / '+fmt(v.duration);
+  $('mpprog').style.width=(r*100).toFixed(2)+'%';
+  if(v.buffered.length){
+    const b=v.buffered.end(v.buffered.length-1)/v.duration;
+    $('mpbuf').style.width=(b*100).toFixed(2)+'%';
+  }
+  $('mptime').textContent=fmt(v.currentTime)+' / '+fmt(v.duration);
 }
 
-// Seek
+/* seek */
 function seekStart(e){
-  e.preventDefault();seekActive=true;seekDo(e);
-  const mv=ev=>{if(seekActive)seekDo(ev);};
-  const up=()=>{seekActive=false;document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);document.removeEventListener('touchmove',mv);document.removeEventListener('touchend',up);};
+  e.preventDefault(); seeking=true; seekDo(e);
+  const mv=ev=>{ if(seeking) seekDo(ev); };
+  const up=()=>{
+    seeking=false;
+    document.removeEventListener('mousemove',mv);
+    document.removeEventListener('mouseup',up);
+    document.removeEventListener('touchmove',mv);
+    document.removeEventListener('touchend',up);
+  };
   document.addEventListener('mousemove',mv,{passive:false});
   document.addEventListener('mouseup',up);
   document.addEventListener('touchmove',mv,{passive:false});
   document.addEventListener('touchend',up);
 }
 function seekDo(e){
-  const track=qs('#mptrack');const rect=track.getBoundingClientRect();
-  const cx=e.touches?e.touches[0].clientX:e.clientX;
-  const ratio=Math.max(0,Math.min(1,(cx-rect.left)/rect.width));
-  const v=qs('#vid');if(isFinite(v.duration))v.currentTime=ratio*v.duration;
+  const track=$('mptrack');
+  const rect=track.getBoundingClientRect();
+  const cx=e.touches ? e.touches[0].clientX : e.clientX;
+  const ratio=Math.max(0, Math.min(1,(cx-rect.left)/rect.width));
+  const v=$('vid');
+  if(isFinite(v.duration)) v.currentTime=ratio*v.duration;
 }
 
-// ── FAVORITES ──────────────────────────────────────────────
-function toggleFav(e,uid){
+/* ══════════════════════════════════════════════
+   FAVORITES
+══════════════════════════════════════════════ */
+function toggleFav(e, uid){
   e.stopPropagation();
-  FAVS.has(uid)?FAVS.delete(uid):FAVS.add(uid);
-  saveFav();renderFavs();
-  // re-render current screen to update heart icon
-  if(curType==='series')renderSeries();else renderScreen(curType);
+  favs.has(uid) ? favs.delete(uid) : favs.add(uid);
+  saveFav();
+  // update just the heart button
+  document.querySelectorAll(`.fb[data-uid="${uid}"]`).forEach(btn=>{
+    const on=favs.has(uid);
+    btn.textContent=on?'❤️':'🤍';
+    btn.classList.toggle('on',on);
+  });
+  // if fav screen visible, re-render it
+  if(qs('#scr-fav.on')) renderFavs();
 }
 
 function renderFavs(){
-  const all=[...DB.live,...DB.vod,...DB.series];
-  const list=all.filter(c=>FAVS.has(c.uid));
-  const cntEl=qs('#favcnt');if(cntEl)cntEl.textContent=list.length?list.length+' içerik':'';
-  const listEl=qs('#favlist'),emptyEl=qs('#favempty'),scroll=qs('.fav-scroll');
-  if(!listEl)return;
-  if(list.length){
-    scroll.style.display='';emptyEl.style.display='none';
-    const getType=c=>DB.live.find(x=>x.uid===c.uid)?'live':DB.vod.find(x=>x.uid===c.uid)?'vod':'series';
-    listEl.innerHTML=list.map((ch,i)=>chHtml(ch,i,getType(ch))).join('');
-  }else{scroll.style.display='none';emptyEl.style.display='';}
+  const favChs=channels.filter(c=>favs.has(c.uid));
+  const cntEl=$('favcnt');
+  if(cntEl) cntEl.textContent=favChs.length ? favChs.length+' kanal' : '';
+  const listEl=$('favlist');
+  const emptyEl=$('favempty');
+  const scroll=qs('.fscr');
+  if(!listEl) return;
+  if(favChs.length){
+    scroll.style.display='';
+    emptyEl.style.display='none';
+    listEl.innerHTML=favChs.map((ch,i)=>chHtml(ch,i)).join('');
+  } else {
+    scroll.style.display='none';
+    emptyEl.style.display='';
+  }
 }
 
 function exportFavs(){
-  const all=[...DB.live,...DB.vod,...DB.series];
-  const list=all.filter(c=>FAVS.has(c.uid));
-  if(!list.length){toast2('❌ Favori yok');return;}
+  const list=channels.filter(c=>favs.has(c.uid));
+  if(!list.length){ toast2('❌ Favori kanal yok'); return; }
   let m3u='#EXTM3U\n';
-  list.forEach(c=>{m3u+=`#EXTINF:-1 tvg-logo="${c.logo}" group-title="${c.group}",${c.name}\n${c.url}\n`;});
-  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([m3u],{type:'text/plain'}));
-  a.download='orion-favs.m3u';a.click();toast2('✅ İndirildi');
+  list.forEach(c=>{
+    m3u+=`#EXTINF:-1 tvg-logo="${c.logo}" group-title="${c.group}",${c.name}\n${c.url}\n`;
+  });
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([m3u],{type:'text/plain'}));
+  a.download='orion-favs.m3u'; a.click();
+  toast2('✅ Favoriler indirildi');
 }
 
-// ── DOTS ───────────────────────────────────────────────────
-function renderDots(){
-  qs('#dotlive').className='ndot'+(DB.live.length?' v':'');
-  qs('#dotvod').className='ndot'+(DB.vod.length?' v':'');
-  qs('#dotseries').className='ndot'+(DB.series.length?' v':'');
-}
-
-// ── SOURCES LIST ───────────────────────────────────────────
+/* ══════════════════════════════════════════════
+   SOURCE LIST
+══════════════════════════════════════════════ */
 function renderSrcList(){
-  const w=qs('#srclist');if(!w)return;
-  if(!SRCS.length){w.innerHTML='<div style="font-size:11px;color:var(--t3);padding:3px 2px">Henüz kaynak eklenmedi</div>';return;}
-  w.innerHTML=SRCS.map(s=>`<div class="srcitem">
-    <div class="srcinfo"><div class="srcname">${esc(s.name)}</div>
-      <div class="srcsub">${s.type==='xtream'?esc(s.host||''):esc(s.url||'Dosya')}</div></div>
-    <button class="srcdel" onclick="delSrc('${s.id}')">✕</button>
-  </div>`).join('');
+  const w=$('srclist'); if(!w) return;
+  if(!srcs.length){
+    w.innerHTML='<div style="font-size:11px;color:var(--t3);padding:3px 2px">Henüz kaynak eklenmedi</div>';
+    return;
+  }
+  w.innerHTML=srcs.map(s=>`
+    <div class="srcitem">
+      <div class="sri">
+        <div class="srn">${esc(s.name)}</div>
+        <div class="srs">${s.type==='xtream' ? esc(s.host||'') : esc(s.url||'Dosya')}</div>
+      </div>
+      <button class="srdel" onclick="delSrc('${s.id}')">✕</button>
+    </div>`).join('');
 }
 
 function delSrc(id){
-  if(!confirm('Bu kaynağı kaldır?'))return;
-  SRCS=SRCS.filter(s=>s.id!==id);
-  ['live','vod','series'].forEach(t=>{DB[t]=DB[t].filter(c=>c._src!==id);});
-  saveDB();saveSrc();renderDots();renderSrcList();
-  renderScreen(activeScreen());renderFavs();
-  toast2('🗑 Kaldırıldı');
+  if(!confirm('Bu kaynağı kaldır?')) return;
+  srcs=srcs.filter(s=>s.id!==id);
+  channels=channels.filter(c=>c._src!==id);
+  saveSrc(); saveCh();
+  activeCat='Tümü';
+  renderLive(); renderSrcList(); renderFavs();
+  toast2('🗑 Kaynak kaldırıldı');
 }
 
 function clearAll(){
-  if(!confirm('Tüm içerik ve favoriler silinsin mi?'))return;
-  DB={live:[],vod:[],series:[]};FAVS=new Set();SRCS=[];PROG={};curCh=null;
-  stopPlayer();saveDB();saveFav();saveSrc();saveProg();
-  renderDots();renderSrcList();renderScreen('live');renderFavs();
+  if(!confirm('Tüm kanallar ve favoriler silinsin mi?')) return;
+  channels=[]; filtered=[]; favs=new Set(); srcs=[]; curCh=null; curIdx=-1;
+  stopPlayer(); saveCh(); saveFav(); saveSrc();
+  activeCat='Tümü';
+  renderLive(); renderSrcList(); renderFavs();
   toast2('🗑 Temizlendi');
 }
 
-// ── SETTINGS HELPERS ───────────────────────────────────────
-function stab(n,el){
+/* ══════════════════════════════════════════════
+   SETTINGS HELPERS
+══════════════════════════════════════════════ */
+function stab(name, el){
   document.querySelectorAll('.stab').forEach(t=>t.classList.remove('on'));
   document.querySelectorAll('.spanel').forEach(p=>p.classList.remove('on'));
-  el.classList.add('on');qs('#p'+n).classList.add('on');
+  el.classList.add('on');
+  $('p'+name).classList.add('on');
 }
-function togglePwd(){const i=qs('#xpass'),e=qs('#peye');i.type=i.type==='password'?'text':'password';e.textContent=i.type==='password'?'👁':'🙈';}
+function togglePwd(){
+  const i=$('xpass'), e=$('peye');
+  i.type=i.type==='password'?'text':'password';
+  e.textContent=i.type==='password'?'👁':'🙈';
+}
+function goSettings(){
+  const el=qs('[data-s=settings]');
+  goNav('settings', el);
+}
 
-// ── NAVIGATION ─────────────────────────────────────────────
-function nav(name,el){
+/* ══════════════════════════════════════════════
+   NAVIGATION
+══════════════════════════════════════════════ */
+function goNav(name, el){
   document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
-  const sc=qs('#scr-'+name);if(sc)sc.classList.add('on');
-  if(el)el.classList.add('on');
+  const sc=$('scr-'+name);
+  if(sc) sc.classList.add('on');
+  if(el) el.classList.add('on');
+
   requestAnimationFrame(()=>{
-    if(name==='live'||name==='vod')renderScreen(name);
-    else if(name==='series')renderSeries();
-    else if(name==='fav')renderFavs();
-    else if(name==='settings')renderSrcList();
+    if(name==='live')     renderLive();
+    else if(name==='fav') renderFavs();
+    else if(name==='settings') renderSrcList();
   });
 }
 
-function activeScreen(){
-  const s=qs('.scr.on');return s?s.id.replace('scr-',''):'live';
-}
-
-// ── INIT ───────────────────────────────────────────────────
+/* ══════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════ */
 function init(){
-  load();
-  renderDots();
-  renderScreen('live');
-  // sw
-  if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  loadStorage();
+  renderLive();
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  }
 }
 init();
 </script>
