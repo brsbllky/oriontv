@@ -7,6 +7,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="OrionTV">
 <meta name="theme-color" content="#07001a">
+<!-- Allow mixed HTTP content for IPTV streams -->
+<meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; media-src * blob: data:;">
 <title>OrionTV</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="app_icon.png">
@@ -1102,12 +1104,41 @@ function doFilter(){
 let _playVersion = 0;
 
 // Build URL list to try for a channel
+// Build all URL variants to try — handles iOS ATS (http→https), port stripping, extensions
 function urlCandidates(url){
   if(!url) return [];
-  if(/\.m3u8(\?|$)/i.test(url))  return [url];
-  if(/\.(ts|mpeg|mpg)(\?|$)/i.test(url)) return [url, url.replace(/\.(ts|mpeg|mpg)(\?.*)?$/i,'.m3u8$2')];
-  // Xtream-style: no extension → try .m3u8 then .ts then bare
-  return [url+'.m3u8', url+'.ts', url];
+
+  // Generate https + no-port variant of a URL
+  function variants(u){
+    const list=[u];
+    // http → https
+    if(u.startsWith('http://')){
+      const https=u.replace(/^http:\/\//,'https://');
+      // also strip :80 port if present
+      const noPort=https.replace(/:80\//,'/').replace(/:80$/,'');
+      if(noPort!==https) list.push(noPort);
+      list.push(https);
+    }
+    return list;
+  }
+
+  // Already .m3u8
+  if(/\.m3u8(\?|$)/i.test(url)){
+    return variants(url);
+  }
+
+  // Has .ts/.mpeg extension → also try .m3u8
+  if(/\.(ts|mpeg|mpg)(\?|$)/i.test(url)){
+    const m3u8=url.replace(/\.(ts|mpeg|mpg)(\?.*)?$/i,'.m3u8$2');
+    return [...variants(m3u8), ...variants(url)];
+  }
+
+  // Xtream-style (no extension): try .m3u8 first, then .ts, then bare
+  return [
+    ...variants(url+'.m3u8'),
+    ...variants(url+'.ts'),
+    ...variants(url),
+  ];
 }
 
 function playCh(uid){
@@ -1139,7 +1170,15 @@ function playCh(uid){
 
   function nextAttempt(){
     if(_playVersion!==ver) return;
-    if(attempt>=cands.length){ toast2('Kanal şu an açılamıyor'); return; }
+    if(attempt>=cands.length){
+      // All candidates failed
+      if(ch.url.startsWith('http://')){
+        toast2('⚠️ HTTP stream — iOS HTTPS gerektirir. Sunucu https:// desteklemiyorsa oynatılamaz.', 5000);
+      } else {
+        toast2('Kanal şu an açılamıyor');
+      }
+      return;
+    }
     const url=cands[attempt++];
 
     v.oncanplay=null; v.onerror=null;
