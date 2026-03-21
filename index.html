@@ -70,7 +70,7 @@ html,body{height:100%;width:100%;overflow:hidden;
 /* ─── MINI PLAYER ─── */
 #mplayer{flex-shrink:0;overflow:hidden;max-height:0;
   transition:max-height .3s cubic-bezier(.4,0,.2,1);}
-#mplayer.open{max-height:56vw;}
+#mplayer.open{max-height:62vw;}
 .mpi{padding:8px 11px 4px;}
 .mpwrap{border-radius:12px;overflow:hidden;background:#000;position:relative;}
 #vid{width:100%;display:block;max-height:40vw;
@@ -345,31 +345,32 @@ html,body{height:100%;width:100%;overflow:hidden;
   <div id="mplayer">
     <div class="mpi">
       <div class="mpwrap g">
-        <video id="vid" playsinline webkit-playsinline preload="auto"></video>
+        <video id="vid" playsinline webkit-playsinline
+               x-webkit-airplay="allow"
+               preload="none"
+               controls
+               style="width:100%;display:block;max-height:40vw;object-fit:contain;background:#000;"></video>
         <div class="mpbar">
           <div class="mpinfo">
             <div class="mpname" id="mpname">—</div>
             <div class="mpgrp" id="mpgrp">—</div>
           </div>
-          <button class="mpc" onclick="skipCh(-1)">
+          <button class="mpc" onclick="skipCh(-1)" title="Önceki kanal">
             <svg viewBox="0 0 24 24"><polygon points="19,20 9,12 19,4"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
           </button>
-          <button class="mpc play" id="ppbtn" onclick="togglePlay()">
-            <svg id="ppico" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
-          </button>
-          <button class="mpc" onclick="skipCh(1)">
+          <button class="mpc" onclick="skipCh(1)" title="Sonraki kanal">
             <svg viewBox="0 0 24 24"><polygon points="5,4 15,12 5,20"/><line x1="19" y1="4" x2="19" y2="20"/></svg>
           </button>
           <button class="mpx" onclick="stopPlayer()">✕</button>
         </div>
-        <div class="mpseek">
+        <div class="mpseek" style="display:none">
           <div class="mptrack" id="mptrack"
                onmousedown="seekStart(event)" ontouchstart="seekStart(event)">
             <div class="mpbuf" id="mpbuf"></div>
             <div class="mpprog" id="mpprog"></div>
           </div>
         </div>
-        <div class="mptime" id="mptime"></div>
+        <div class="mptime" id="mptime" style="display:none"></div>
       </div>
     </div>
   </div>
@@ -974,26 +975,56 @@ function playCh(uid){
   if(curIdx===-1) curIdx=channels.indexOf(ch);
 
   const v=$('vid');
+
+  // Stop current cleanly
   v.pause();
   v.removeAttribute('src');
-  v.src=ch.url;
-  v.load();
+  v.load(); // reset internal state
 
+  // Update info
   $('mpname').textContent=ch.name;
   $('mpgrp').textContent=ch.group;
   $('mpprog').style.width='0';
   $('mpbuf').style.width='0';
   $('mptime').textContent='';
-  setIcon(false);
 
-  // open mini player
+  // Open mini player first (needs to be visible for iOS autoplay)
   $('mplayer').classList.add('open');
+  $('pdot').classList.add('v');
 
-  v.play()
-    .then(()=>setIcon(true))
-    .catch(()=>{ setIcon(false); toast2('▶ Play tuşuna bas'); });
+  // Set new source — do NOT call v.load() again, let play() do it
+  v.src=ch.url;
 
-  // update now-playing marker without full re-render
+  // iOS: play() directly after setting src (within user gesture context)
+  const playPromise=v.play();
+  if(playPromise !== undefined){
+    playPromise
+      .then(()=>{ setIcon(true); })
+      .catch(err=>{
+        // AbortError is normal when switching channels quickly — ignore
+        if(err.name==='AbortError') return;
+        // NotAllowedError = autoplay blocked, show play button
+        if(err.name==='NotAllowedError'){
+          setIcon(false);
+          toast2('▶ Oynatmak için play tuşuna bas');
+          return;
+        }
+        // Other errors — stream might need .m3u8 extension
+        setIcon(false);
+        // Try with .m3u8 if url ends in .ts
+        if(ch.url.endsWith('.ts')){
+          const m3uUrl=ch.url.replace(/\.ts$/,'.m3u8');
+          v.src=m3uUrl;
+          v.play().then(()=>setIcon(true)).catch(()=>{
+            toast2('❌ Oynatılamadı — bu kanal desteklenmiyor olabilir');
+          });
+        } else {
+          toast2('❌ Oynatılamadı — kanal desteklenmiyor olabilir');
+        }
+      });
+  }
+
+  // Update now-playing UI without re-rendering list
   document.querySelectorAll('.chi.now').forEach(el=>el.classList.remove('now'));
   const el=document.querySelector(`.chi[data-uid="${uid}"]`);
   if(el){
@@ -1002,10 +1033,9 @@ function playCh(uid){
       const pb=document.createElement('div');
       pb.className='pbar'; el.prepend(pb);
     }
+    // scroll into view gently
+    el.scrollIntoView({block:'nearest',behavior:'smooth'});
   }
-
-  // update nav dot
-  $('pdot').classList.add('v');
 }
 
 function stopPlayer(){
@@ -1022,15 +1052,11 @@ function stopPlayer(){
 
 function togglePlay(){
   const v=$('vid');
-  if(v.paused){ v.play().then(()=>setIcon(true)).catch(()=>{}); }
-  else { v.pause(); setIcon(false); }
+  if(v.paused){ v.play().catch(()=>{}); }
+  else { v.pause(); }
 }
 
-function setIcon(playing){
-  $('ppico').innerHTML=playing
-    ? '<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>'
-    : '<polygon points="5,3 19,12 5,21"/>';
-}
+function setIcon(playing){ /* native controls handles this */ }
 
 function skipCh(dir){
   const list=filtered.length ? filtered : channels;
@@ -1047,8 +1073,29 @@ function skipCh(dir){
   v.addEventListener('play',  ()=>setIcon(true));
   v.addEventListener('pause', ()=>setIcon(false));
   v.addEventListener('ended', ()=>setIcon(false));
-  v.addEventListener('error', ()=>{ toast2('❌ Oynatılamadı'); setIcon(false); });
+  v.addEventListener('error', (e)=>{
+    const err=v.error;
+    // code 4 = MEDIA_ERR_SRC_NOT_SUPPORTED — stream format not supported by browser
+    // code 2 = MEDIA_ERR_NETWORK — network error
+    if(!curCh) return;
+    if(err && err.code===4){
+      // .ts not supported natively — this is common; iOS supports HLS (.m3u8)
+      // Try switching to .m3u8 automatically
+      if(curCh.url.includes('.ts') && !v._triedM3u8){
+        v._triedM3u8=true;
+        const m3uUrl=curCh.url.replace(/\.ts(\?.*)?$/,(m,q)=>'.m3u8'+(q||''));
+        v.src=m3uUrl;
+        v.play().then(()=>setIcon(true)).catch(()=>toast2('❌ Bu kanal bu cihazda oynatılamıyor'));
+        return;
+      }
+    }
+    if(err && err.code===2) toast2('❌ Ağ hatası — internet bağlantını kontrol et');
+    else toast2('❌ Oynatılamadı — kanal çevrimdışı olabilir');
+    setIcon(false);
+  });
   v.addEventListener('timeupdate', updateSeek);
+  // clear m3u8 fallback flag on each new src
+  v.addEventListener('emptied', ()=>{ v._triedM3u8=false; });
 })();
 
 function updateSeek(){
