@@ -659,18 +659,26 @@ function toast2(msg, dur=2600){
 // srcDB: { [srcId]: { channels:[], name:'' } }
 let srcDB     = {};
 let srcs      = [];   // [{id,name,type,...}]
-let activeSrc = null; // currently selected source id (null = all)
+let activeSrc = null;
 let favs      = new Set();
+let hiddenCats= {};   // { srcId: Set<groupName> } — gizlenen kategoriler
 let activeCat = 'Tümü';
 
 let curCh  = null;
 let curIdx = -1;
 let seeking= false;
 
-// computed from activeSrc
 function getChannels(){
-  if(!activeSrc) return Object.values(srcDB).flatMap(s=>s.channels);
-  return srcDB[activeSrc]?.channels || [];
+  const list = activeSrc
+    ? (srcDB[activeSrc]?.channels || [])
+    : Object.values(srcDB).flatMap(s=>s.channels||[]);
+  // Gizli kategorileri filtrele
+  if(!Object.keys(hiddenCats).length) return list;
+  return list.filter(ch => {
+    const sid = ch._src || activeSrc;
+    const hidden = hiddenCats[sid];
+    return !hidden || !hidden.has(ch.group);
+  });
 }
 let filtered = [];
 
@@ -681,7 +689,14 @@ function loadStorage(){
   try{ const d=localStorage.getItem('otv_db2'); if(d) srcDB=JSON.parse(d); }catch(e){}
   try{ const f=localStorage.getItem('otv_fav'); if(f) favs=new Set(JSON.parse(f)); }catch(e){}
   try{ const s=localStorage.getItem('otv_src'); if(s) srcs=JSON.parse(s); }catch(e){}
-  // migrate old flat channels
+  try{
+    const h=localStorage.getItem('otv_hidden');
+    if(h){
+      const raw=JSON.parse(h);
+      Object.entries(raw).forEach(([k,v])=>{ hiddenCats[k]=new Set(v); });
+    }
+  }catch(e){}
+  // migrate
   try{
     const old=localStorage.getItem('otv_ch');
     if(old && !Object.keys(srcDB).length){
@@ -695,6 +710,14 @@ function loadStorage(){
         localStorage.removeItem('otv_ch');
       }
     }
+  }catch(e){}
+}
+
+function saveHidden(){
+  try{
+    const raw={};
+    Object.entries(hiddenCats).forEach(([k,v])=>{ raw[k]=[...v]; });
+    localStorage.setItem('otv_hidden', JSON.stringify(raw));
   }catch(e){}
 }
 
@@ -1541,17 +1564,158 @@ function renderSrcList(){
     return;
   }
   w.innerHTML=srcs.map(s=>{
-    const cnt=srcDB[s.id]?.channels?.length||0;
+    const allCh=srcDB[s.id]?.channels||[];
+    const hidden=hiddenCats[s.id]?.size||0;
+    const visible=allCh.length - allCh.filter(c=>hiddenCats[s.id]?.has(c.group)).length;
     const sub=s.type==='xtream'?(s.host||''):(s.url||'Dosya');
     return`<div class="srcitem">
       <div class="sri">
-        <div class="srn">${esc(s.name)} <span style="font-weight:400;color:var(--t3);font-size:10px">(${cnt} kanal)</span></div>
-        <div class="srs">${esc(sub.substring(0,40))}</div>
+        <div class="srn">${esc(s.name)}</div>
+        <div class="srs">${visible} görünür kanal${hidden?` · <span style="color:var(--red)">${hidden} kategori gizli</span>`:''}</div>
       </div>
-      <button class="srdel" style="font-size:14px;margin-right:2px" onclick="exportSrc('${s.id}')" title="M3U olarak dışa aktar">⬇</button>
-      <button class="srdel" onclick="delSrc('${s.id}')" title="Kaldır">✕</button>
+      <div style="display:flex;gap:4px;flex-shrink:0">
+        <button class="srdl" onclick="openCatManager('${s.id}')" title="Kategorileri filtrele" style="padding:5px 8px;font-size:12px">☰ Kategoriler</button>
+        <button class="srdl" onclick="exportSrc('${s.id}')" title="Dışa aktar">⬇</button>
+        <button class="srdel" onclick="delSrc('${s.id}')" title="Kaldır">✕</button>
+      </div>
     </div>`;
   }).join('');
+}
+
+/* ── KATEGORİ YÖNETİCİSİ MODAL ── */
+function openCatManager(srcId){
+  const chs = srcDB[srcId]?.channels||[];
+  if(!chs.length){ toast2('Bu kaynakta kanal yok'); return; }
+
+  // Tüm kategorileri al
+  const cats=[...new Set(chs.map(c=>c.group||'Genel'))].sort((a,b)=>a.localeCompare(b,'tr'));
+  const hidden = hiddenCats[srcId] || new Set();
+  const src = srcs.find(s=>s.id===srcId);
+
+  // Modal oluştur
+  let modal = $('cat-modal');
+  if(modal) modal.remove();
+
+  modal = document.createElement('div');
+  modal.id = 'cat-modal';
+  modal.style.cssText = `
+    position:fixed;inset:0;z-index:900;
+    background:rgba(0,0,0,.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    display:flex;align-items:flex-end;justify-content:center;
+    padding:0;
+  `;
+
+  const counts = {};
+  chs.forEach(c=>{ counts[c.group||'Genel']=(counts[c.group||'Genel']||0)+1; });
+
+  modal.innerHTML = `
+    <div style="
+      background:#1a1a1a;border-radius:20px 20px 0 0;
+      width:100%;max-width:600px;
+      max-height:85vh;display:flex;flex-direction:column;
+      border:1px solid rgba(255,255,255,.12);border-bottom:none;
+      padding-bottom:calc(env(safe-area-inset-bottom,0px) + 8px);
+    ">
+      <!-- Header -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px 10px;border-bottom:1px solid rgba(255,255,255,.08);flex-shrink:0">
+        <div>
+          <div style="font-size:15px;font-weight:700">${esc(src?.name||'Kaynak')} — Kategoriler</div>
+          <div style="font-size:11px;color:var(--t3);margin-top:2px">${cats.length} kategori · İstemediğin kategorileri gizle</div>
+        </div>
+        <button onclick="$('cat-modal').remove()" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);color:var(--t2);border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center">✕</button>
+      </div>
+      <!-- Hızlı butonlar -->
+      <div style="display:flex;gap:8px;padding:10px 16px 8px;flex-shrink:0">
+        <button onclick="selectAllCats('${srcId}',true)" style="flex:1;padding:7px;border-radius:9px;border:1px solid var(--gbr);background:rgba(34,197,94,.12);color:#22c55e;font-size:12px;font-weight:600;cursor:pointer">✅ Tümünü Göster</button>
+        <button onclick="selectAllCats('${srcId}',false)" style="flex:1;padding:7px;border-radius:9px;border:1px solid var(--gbr);background:rgba(239,68,68,.1);color:var(--red);font-size:12px;font-weight:600;cursor:pointer">🙈 Tümünü Gizle</button>
+      </div>
+      <!-- Kategori listesi -->
+      <div style="overflow-y:auto;flex:1;padding:0 10px 10px" id="cat-list">
+        ${cats.map(cat=>{
+          const isHidden = hidden.has(cat);
+          const cnt = counts[cat]||0;
+          return `<div style="display:flex;align-items:center;gap:10px;padding:10px 8px;border-radius:11px;cursor:pointer;transition:.12s;${isHidden?'opacity:.5':''}" onclick="toggleCat('${srcId}','${cat.replace(/'/g,"\\'").replace(/\\/g,'\\\\')}')" id="cat-row-${mkuid(cat,srcId)}">
+            <div style="width:22px;height:22px;border-radius:6px;border:2px solid ${isHidden?'rgba(255,255,255,.2)':'#22c55e'};background:${isHidden?'transparent':'#22c55e'};display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:.15s" id="cat-chk-${mkuid(cat,srcId)}">
+              ${isHidden?'':'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"/></svg>'}
+            </div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(cat)}</div>
+              <div style="font-size:10px;color:var(--t3);margin-top:1px">${cnt} kanal</div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+      <!-- Footer -->
+      <div style="padding:10px 16px 4px;flex-shrink:0;border-top:1px solid rgba(255,255,255,.08)">
+        <button onclick="applyCatFilter('${srcId}')" style="width:100%;padding:13px;border-radius:13px;border:none;background:#22c55e;color:#fff;font-size:14px;font-weight:700;cursor:pointer">Uygula</button>
+      </div>
+    </div>
+  `;
+
+  // Geçici hidden state
+  modal._pending = new Set(hidden);
+  modal._srcId = srcId;
+  document.body.appendChild(modal);
+}
+
+function toggleCat(srcId, cat){
+  const modal = $('cat-modal'); if(!modal) return;
+  if(!modal._pending) modal._pending = new Set(hiddenCats[srcId]||[]);
+  const id = mkuid(cat, srcId);
+  const row = document.getElementById('cat-row-'+id);
+  const chk = document.getElementById('cat-chk-'+id);
+  if(!row||!chk) return;
+
+  if(modal._pending.has(cat)){
+    modal._pending.delete(cat);
+    chk.style.borderColor='#22c55e'; chk.style.background='#22c55e';
+    chk.innerHTML='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"/></svg>';
+    row.style.opacity='1';
+  } else {
+    modal._pending.add(cat);
+    chk.style.borderColor='rgba(255,255,255,.2)'; chk.style.background='transparent';
+    chk.innerHTML='';
+    row.style.opacity='.5';
+  }
+}
+
+function selectAllCats(srcId, show){
+  const modal = $('cat-modal'); if(!modal) return;
+  const chs = srcDB[srcId]?.channels||[];
+  const cats=[...new Set(chs.map(c=>c.group||'Genel'))];
+  if(!modal._pending) modal._pending = new Set();
+  if(show) modal._pending.clear();
+  else cats.forEach(c=>modal._pending.add(c));
+
+  // UI güncelle
+  cats.forEach(cat=>{
+    const id=mkuid(cat,srcId);
+    const row=document.getElementById('cat-row-'+id);
+    const chk=document.getElementById('cat-chk-'+id);
+    if(!row||!chk) return;
+    if(show){
+      chk.style.borderColor='#22c55e'; chk.style.background='#22c55e';
+      chk.innerHTML='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"/></svg>';
+      row.style.opacity='1';
+    } else {
+      chk.style.borderColor='rgba(255,255,255,.2)'; chk.style.background='transparent';
+      chk.innerHTML=''; row.style.opacity='.5';
+    }
+  });
+}
+
+function applyCatFilter(srcId){
+  const modal = $('cat-modal'); if(!modal) return;
+  if(modal._pending.size === 0){
+    delete hiddenCats[srcId];
+  } else {
+    hiddenCats[srcId] = new Set(modal._pending);
+  }
+  saveHidden();
+  modal.remove();
+  activeCat='Tümü';
+  renderLive(); renderSrcList();
+  toast2('✅ Kategori filtresi uygulandı');
 }
 
 function exportSrc(id){
@@ -1581,9 +1745,9 @@ function delSrc(id){
 
 function clearAll(){
   if(!confirm('Tüm kanallar ve favoriler silinsin mi?')) return;
-  srcDB={}; filtered=[]; favs=new Set(); srcs=[];
-  activeSrc=null; activeCat='Tümü'; curCh=null; curIdx=-1; _playVersion++;
-  stopPlayer(); saveDB(); saveFav(); saveSrc();
+  srcDB={}; filtered=[]; favs=new Set(); srcs=[]; hiddenCats={};
+  activeSrc=null; activeCat='Tümü'; curCh=null; curIdx=-1; _pv++;
+  stopPlayer(); saveDB(); saveFav(); saveSrc(); saveHidden();
   renderSrcSelector(); renderLive(); renderSrcList(); renderFavs();
   toast2('🗑 Temizlendi');
 }
