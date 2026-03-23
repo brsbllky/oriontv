@@ -526,6 +526,12 @@ html,body{height:100%;width:100%;overflow:hidden;
         </div>
       </div>
       <div id="proxy-status" style="font-size:11px;color:var(--t3);padding:0 2px 4px;min-height:16px"></div>
+      <!-- Debug: ilk kanalı test et -->
+      <button onclick="debugStream()" id="debug-btn"
+        style="width:100%;padding:9px;border-radius:11px;border:1px solid var(--gbr);background:var(--gb);color:var(--t2);font-size:11px;font-weight:600;cursor:pointer;margin-top:2px;display:none">
+        🔍 İlk Kanalı Debug Et
+      </button>
+      <pre id="debug-out" style="display:none;margin-top:8px;padding:10px;border-radius:10px;background:rgba(0,0,0,.4);border:1px solid var(--gbr);font-size:10px;color:var(--t2);white-space:pre-wrap;word-break:break-all;max-height:200px;overflow-y:auto;line-height:1.5"></pre>
     </div>
 
     <!-- MANAGEMENT -->
@@ -1144,11 +1150,57 @@ async function testProxy(){
       try{ localStorage.setItem('otv_proxy', proxyUrl); }catch(e){}
       statusEl.textContent = '✅ Proxy çalışıyor!';
       toast2('✅ Proxy bağlantısı başarılı');
+      // debug butonunu göster
+      const chs = getChannels();
+      if(chs.length){ $('debug-btn').style.display='block'; }
     } else {
       statusEl.textContent = '❌ Proxy yanıt verdi ama OrionTV Worker değil';
     }
   }catch(e){
     statusEl.textContent = '❌ Bağlanamadı — URL\'yi kontrol et';
+  }
+}
+
+async function debugStream(){
+  const chs = getChannels();
+  if(!chs.length){ toast2('Önce bir kaynak yükle'); return; }
+  if(!proxyUrl){ toast2('Proxy URL gerekli'); return; }
+
+  const ch = chs[0];
+  const debugUrl = proxyUrl + '/debug?url=' + encodeURIComponent(ch.url);
+  const out = $('debug-out');
+  out.style.display = 'block';
+  out.textContent = '⏳ Sunucu test ediliyor...\nURL: ' + ch.url + '\n';
+
+  try{
+    const r = await fetch(debugUrl, { signal: AbortSignal.timeout(20000) });
+    const data = await r.json();
+
+    let txt = '📡 Kanal: ' + ch.name + '\n🔗 URL: ' + ch.url + '\n\n';
+    data.forEach(d => {
+      txt += `── ${d.ua} ──\n`;
+      if(d.error){ txt += `❌ Hata: ${d.error}\n\n`; return; }
+      txt += `Status: ${d.status}\n`;
+      txt += `Content-Type: ${d.contentType || '?'}\n`;
+      txt += `M3U8 içeriği: ${d.isM3U8 ? '✅ Evet' : '❌ Hayır'}\n`;
+      txt += `Çalışıyor: ${d.isWorking ? '✅' : '❌'}\n`;
+      txt += `İçerik: ${d.bodyPreview || '(boş)'}\n\n`;
+    });
+
+    // En iyi UA'yı bul
+    const working = data.find(d => d.isWorking && !d.error);
+    if(working){
+      txt += `\n✅ ${working.ua} ile çalışıyor!`;
+      if(working.isM3U8) txt += '\n✅ HLS stream tespit edildi — oynatılabilir olmalı';
+      else txt += '\n⚠️ M3U8 değil — farklı stream formatı';
+    } else {
+      txt += '\n❌ Hiçbir UA ile çalışmıyor\n';
+      txt += '→ Sağlayıcı IP bazlı kısıtlama yapıyor olabilir';
+    }
+
+    out.textContent = txt;
+  }catch(e){
+    out.textContent = '❌ Debug başarısız: ' + e.message;
   }
 }
 
