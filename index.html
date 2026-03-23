@@ -1116,29 +1116,40 @@ function urlCandidates(url){
   return buildCandidates(url);
 }
 
+function cleanUrl(u){
+  // :443 kaldır (iOS Safari standart HTTPS portunu bazen reddeder)
+  // :80 kaldır (HTTP standart port)
+  return u.replace(/:443([/?#])/g,'$1').replace(/:443$/,'')
+          .replace(/:80([/?#])/g,'$1').replace(/:80$/,'');
+}
+
 function buildCandidates(url){
+  const clean = cleanUrl(url);
   const isHttp = url.startsWith('http://');
 
-  // https:// URL → direkt dene, fallback yok
-  if(!isHttp) {
-    if(/\.m3u8(\?|$)/i.test(url)) return [url];
-    if(/\.(ts|mpeg|mpg)(\?|$)/i.test(url))
-      return [url.replace(/\.(ts|mpeg|mpg)(\?.*)?$/i,'.m3u8$2'), url];
-    // uzantısız → .m3u8 önce
-    return [url+'.m3u8', url+'.ts', url];
+  // https:// → temizlenmiş URL ile dene
+  if(!isHttp){
+    const variants = clean !== url ? [clean, url] : [url];
+    if(/\.m3u8(\?|$)/i.test(url)) return variants;
+    if(/\.(ts|mpeg|mpg)(\?|$)/i.test(url)){
+      const m = clean.replace(/\.(ts|mpeg|mpg)(\?.*)?$/i,'.m3u8$2');
+      return [m, ...variants];
+    }
+    // Uzantısız (/play/TOKEN gibi) — önce temiz URL direkt, sonra .m3u8 ekle
+    return [...variants, clean+'.m3u8', url+'.m3u8'];
   }
 
-  // http:// → https versiyonları üret (port :80 sil)
-  const https = url.replace(/^http:\/\//,'https://').replace(/:80([/?])/,'$1').replace(/:80$/,'');
+  // http:// → https versiyonlarını üret
+  const https = cleanUrl(url.replace(/^http:\/\//,'https://'));
+  const httpsRaw = url.replace(/^http:\/\//,'https://');
 
-  if(/\.m3u8(\?|$)/i.test(url)) return [https, url];
+  if(/\.m3u8(\?|$)/i.test(url)) return [https, httpsRaw, url];
   if(/\.(ts|mpeg|mpg)(\?|$)/i.test(url)){
-    const m3u8 = url.replace(/\.(ts|mpeg|mpg)(\?.*)?$/i,'.m3u8$2');
-    const m3u8h = https.replace(/\.(ts|mpeg|mpg)(\?.*)?$/i,'.m3u8$2');
-    return [m3u8h, m3u8, https, url];
+    const m3u8 = https.replace(/\.(ts|mpeg|mpg)(\?.*)?$/i,'.m3u8$2');
+    return [m3u8, https, httpsRaw, url];
   }
-  // Xtream-style (uzantısız)
-  return [https+'.m3u8', url+'.m3u8', https+'.ts', url+'.ts', https, url];
+  // Uzantısız
+  return [https, https+'.m3u8', httpsRaw, url];
 }
 
 function playCh(uid){
@@ -1186,13 +1197,14 @@ function playCh(uid){
     v.oncanplay = null; v.onerror = null;
     clearTimeout(v._toTimer);
 
-    // 8 saniye timeout — tarayıcı bazen sonsuza kadar bekler
+    // İlk deneme için 20s, sonrakiler için 10s timeout
+    const timeoutMs = attempt === 1 ? 20000 : 10000;
     v._toTimer = setTimeout(()=>{
       if(_pv !== ver) return;
       v.oncanplay = null; v.onerror = null;
       v.pause(); v.src = ''; v.load();
       next();
-    }, 8000);
+    }, timeoutMs);
 
     v.onerror = ()=>{
       if(_pv !== ver) return;
@@ -1230,16 +1242,16 @@ function playCh(uid){
   v.onwaiting = ()=>{
     if(_pv !== ver) return;
     showBuf(true);
-    // 15s bekledikten sonra sonraki URL'yi dene
+    // 20s bekledikten sonra sonraki URL'yi dene
     clearTimeout(v._bufTimer);
     v._bufTimer = setTimeout(()=>{
       if(_pv !== ver) return;
-      if(v.readyState < 3){ // HAVE_FUTURE_DATA'dan az
+      if(v.readyState < 3){
         v.oncanplay = null; v.onerror = null;
         v.pause(); v.src = ''; v.load();
         next();
       }
-    }, 15000);
+    }, 20000);
   };
   v.onplaying = ()=>{ if(_pv===ver){ showBuf(false); clearTimeout(v._bufTimer); } };
 
