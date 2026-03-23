@@ -512,6 +512,22 @@ html,body{height:100%;width:100%;overflow:hidden;
       <div id="srclist"></div>
     </div>
 
+    <!-- PROXY SETTINGS -->
+    <div class="sgrp">
+      <div class="sgrptitle">🔌 Stream Proxy</div>
+      <div class="ibox" style="margin-bottom:8px">⚡ <span>Bazı sunucular tarayıcıyı bloklar. Cloudflare Worker proxy adresi girerek bypass edebilirsin.</span></div>
+      <div class="fw">
+        <span class="flbl">Worker URL</span>
+        <div style="display:flex;gap:7px;align-items:center">
+          <input class="ginp" id="proxy-url" type="url" placeholder="https://orion-proxy.kullanici.workers.dev"
+                 autocorrect="off" autocapitalize="none" spellcheck="false"
+                 style="flex:1" oninput="saveProxy()">
+          <button onclick="testProxy()" style="padding:10px 14px;border-radius:12px;border:none;background:var(--gb);border:1px solid var(--gbr);color:var(--t1);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0">Test</button>
+        </div>
+      </div>
+      <div id="proxy-status" style="font-size:11px;color:var(--t3);padding:0 2px 4px;min-height:16px"></div>
+    </div>
+
     <!-- MANAGEMENT -->
     <div class="sgrp">
       <div class="sgrptitle">Yönetim</div>
@@ -1099,8 +1115,50 @@ function doFilter(){
 }
 
 /* ══════════════════════════════════════════════
-   PLAY — hızlı, akıllı URL tespiti + buffering
+   PROXY
 ══════════════════════════════════════════════ */
+let proxyUrl = '';
+
+function loadProxy(){
+  try{ proxyUrl = localStorage.getItem('otv_proxy') || ''; }catch(e){}
+  const el = $('proxy-url');
+  if(el) el.value = proxyUrl;
+}
+
+function saveProxy(){
+  proxyUrl = ($('proxy-url')?.value || '').trim().replace(/\/+$/,'');
+  try{ localStorage.setItem('otv_proxy', proxyUrl); }catch(e){}
+  $('proxy-status').textContent = proxyUrl ? '✅ Proxy aktif' : '';
+}
+
+async function testProxy(){
+  const url = ($('proxy-url')?.value || '').trim().replace(/\/+$/,'');
+  if(!url){ toast2('⚠️ Önce Worker URL gir'); return; }
+  const statusEl = $('proxy-status');
+  statusEl.textContent = '⏳ Test ediliyor…';
+  try{
+    const r = await fetch(url + '/', { signal: AbortSignal.timeout(8000) });
+    const t = await r.text();
+    if(r.ok && t.includes('OrionTV')){
+      proxyUrl = url;
+      try{ localStorage.setItem('otv_proxy', proxyUrl); }catch(e){}
+      statusEl.textContent = '✅ Proxy çalışıyor!';
+      toast2('✅ Proxy bağlantısı başarılı');
+    } else {
+      statusEl.textContent = '❌ Proxy yanıt verdi ama OrionTV Worker değil';
+    }
+  }catch(e){
+    statusEl.textContent = '❌ Bağlanamadı — URL\'yi kontrol et';
+  }
+}
+
+// Stream URL'sini proxy üzerinden geçir
+function proxyStreamUrl(url){
+  if(!proxyUrl || !url) return url;
+  return proxyUrl + '/proxy?url=' + encodeURIComponent(url);
+}
+
+
 let _pv = 0; // play version — stale callbacks ignore
 
 /* Kanal URL'sinin formatını bir kez test edip sakla */
@@ -1112,8 +1170,23 @@ function urlCandidates(url){
 
   // Daha önce çalışan URL varsa onu önce dene
   const cached = _urlCache[url];
-  if(cached && cached !== url) return [cached, ...buildCandidates(url).filter(u=>u!==cached)];
-  return buildCandidates(url);
+  const base = buildCandidates(url);
+
+  // Proxy aktifse: her URL'nin proxy versiyonunu başa ekle
+  let candidates;
+  if(proxyUrl){
+    const proxied = base.map(u => proxyStreamUrl(u));
+    // Deduplicate: proxied önce, sonra direkt
+    candidates = [...proxied, ...base];
+  } else {
+    candidates = base;
+  }
+
+  // Cache varsa o öne geçsin
+  if(cached){
+    candidates = [cached, ...candidates.filter(u => u !== cached)];
+  }
+  return candidates;
 }
 
 function cleanUrl(u){
@@ -1504,7 +1577,7 @@ function goNav(name, el){
 ══════════════════════════════════════════════ */
 function init(){
   loadStorage();
-  // Set active source to last loaded source
+  loadProxy();
   if(!activeSrc && srcs.length) activeSrc=srcs[srcs.length-1].id;
   renderSrcSelector();
   renderLive();
