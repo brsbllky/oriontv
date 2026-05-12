@@ -350,7 +350,6 @@ html,body{height:100%;width:100%;overflow:hidden;
   white-space:nowrap;z-index:999;pointer-events:none;
   max-width:88vw;text-align:center;}
 #toast.on{opacity:1;transform:translateX(-50%) translateY(0) scale(1);}
-
 </style>
 </head>
 <body>
@@ -655,12 +654,11 @@ function toast2(msg, dur=2600){
 /* ══════════════════════════════════════════════
    STATE
 ══════════════════════════════════════════════ */
-// srcDB: { [srcId]: { channels:[], name:'' } }
 let srcDB     = {};
-let srcs      = [];   // [{id,name,type,...}]
+let srcs      = [];
 let activeSrc = null;
 let favs      = new Set();
-let hiddenCats= {};   // { srcId: Set<groupName> } — gizlenen kategoriler
+let hiddenCats= {};
 let activeCat = 'Tümü';
 
 let curCh  = null;
@@ -671,7 +669,6 @@ function getChannels(){
   const list = activeSrc
     ? (srcDB[activeSrc]?.channels || [])
     : Object.values(srcDB).flatMap(s=>s.channels||[]);
-  // Gizli kategorileri filtrele
   if(!Object.keys(hiddenCats).length) return list;
   return list.filter(ch => {
     const sid = ch._src || activeSrc;
@@ -695,7 +692,6 @@ function loadStorage(){
       Object.entries(raw).forEach(([k,v])=>{ hiddenCats[k]=new Set(v); });
     }
   }catch(e){}
-  // migrate
   try{
     const old=localStorage.getItem('otv_ch');
     if(old && !Object.keys(srcDB).length){
@@ -724,14 +720,12 @@ let _dbT;
 function saveDB(){
   clearTimeout(_dbT);
   _dbT=setTimeout(()=>{
-    // trim each source to max 6000 channels
     const trimmed={};
     Object.entries(srcDB).forEach(([id,s])=>{
       trimmed[id]={channels:(s.channels||[]).slice(0,6000)};
     });
     try{ localStorage.setItem('otv_db2',JSON.stringify(trimmed)); }
     catch(e){
-      // quota: trim harder
       const t2={};
       Object.entries(srcDB).forEach(([id,s])=>{
         t2[id]={channels:(s.channels||[]).slice(0,1000)};
@@ -744,7 +738,7 @@ function saveFav(){ try{ localStorage.setItem('otv_fav',JSON.stringify([...favs]
 function saveSrc(){ try{ localStorage.setItem('otv_src',JSON.stringify(srcs)); }catch(e){} }
 
 /* ══════════════════════════════════════════════
-   M3U PARSER  — only keeps live channels
+   M3U PARSER
 ══════════════════════════════════════════════ */
 function parseM3U(text){
   const result=[];
@@ -764,7 +758,6 @@ function parseM3U(text){
     } else if(cur && !l.startsWith('#')){
       cur.url=l;
       cur.uid=mkuid(cur.name, l);
-      // skip obvious VOD/series entries
       if(!isVodOrSeries(cur.group, cur.name, l)){
         result.push(cur);
       }
@@ -781,7 +774,7 @@ function isVodOrSeries(g,n,u){
 }
 
 /* ══════════════════════════════════════════════
-   FETCH  — tries direct then 3 proxies
+   FETCH
 ══════════════════════════════════════════════ */
 async function sfetch(url, ms=20000){
   const attempts=[
@@ -797,7 +790,7 @@ async function sfetch(url, ms=20000){
         const t=await r.text();
         if(t && t.length>20) return t;
       }
-    }catch(e){ /* try next */ }
+    }catch(e){}
   }
   throw new Error('all_failed');
 }
@@ -809,15 +802,11 @@ async function doLoadM3U(){
   const raw=($('murl').value||'').trim();
   const name=($('mname').value||'').trim() || 'M3U Kaynak';
   if(!raw){ toast2('⚠️ URL veya M3U içeriği gir'); return; }
-
-  // Pasted M3U content
   if(raw.startsWith('#EXTM3U') || raw.includes('#EXTINF')){
     applyChannels(parseM3U(raw), name, 'm3u', {});
     return;
   }
   if(!raw.startsWith('http')){ toast2('⚠️ http:// ile başlamalı'); return; }
-
-  // URLs with username+password → extract and use Xtream JSON API (avoids CORS)
   try{
     const u=new URL(raw);
     const user=u.searchParams.get('username');
@@ -828,13 +817,10 @@ async function doLoadM3U(){
       $('xuser').value=user;
       $('xpass').value=pass;
       $('xname').value=name;
-      // Run Xtream loader (handles JSON API + M3U fallback)
       await doLoadXtream();
       return;
     }
   }catch(e){}
-
-  // Generic M3U URL — try proxies
   setBtn('mbtn','⏳ Yükleniyor…',true);
   let loaded=false;
   try{
@@ -845,13 +831,11 @@ async function doLoadM3U(){
     }
   }catch(e){}
   setBtn('mbtn','Yükle',false);
-
   if(!loaded) showDownloadHelper(raw, name);
 }
 
 function showDownloadHelper(url, name){
   $('dl-helper')?.remove();
-  // Check if there are credentials in the URL to offer Xtream tab
   let xtreamBtn='';
   try{
     const u=new URL(url);
@@ -863,7 +847,6 @@ function showDownloadHelper(url, name){
         <button onclick="$('xhost').value='${cleanHost}';$('xuser').value='${user}';$('xpass').value='${pass}';$('xname').value='${esc(name)}';stab('xtream',document.querySelectorAll('.stab')[1]);$('dl-helper')?.remove();" style="width:100%;padding:9px;border-radius:10px;border:1px solid rgba(0,200,255,.25);background:rgba(0,200,255,.08);color:#00c8ff;font-size:12px;font-weight:600;cursor:pointer;margin-bottom:8px;font-family:inherit">📡 Xtream Sekmesine Geç</button>`;
     }
   }catch(e){}
-
   const div=document.createElement('div');
   div.id='dl-helper';
   div.style.cssText='margin-top:10px;padding:13px 14px;border-radius:14px;background:rgba(255,214,10,.07);border:1px solid rgba(255,214,10,.22);font-size:12px;color:rgba(255,255,255,.82);line-height:1.65;';
@@ -877,33 +860,27 @@ function showDownloadHelper(url, name){
 }
 
 /* ══════════════════════════════════════════════
-   LOAD XTREAM  — only live streams
+   LOAD XTREAM
 ══════════════════════════════════════════════ */
 async function doLoadXtream(){
   const host=($('xhost').value||'').trim().replace(/\/+$/,'');
   const user=($('xuser').value||'').trim();
   const pass=($('xpass').value||'').trim();
   const name=($('xname').value||'').trim() || 'Xtream Kaynak';
-
   if(!host){ toast2('⚠️ Sunucu gir'); return; }
   if(!user){ toast2('⚠️ Kullanıcı adı gir'); return; }
   if(!pass){ toast2('⚠️ Şifre gir'); return; }
   if(!host.startsWith('http')){ toast2('⚠️ http:// ile başlamalı'); return; }
-
   setBtn('xbtn','⏳ Bağlanıyor…',true);
   toast2('⏳ Bağlanıyor…');
-
   const enc=encodeURIComponent;
   const base=`${host}/player_api.php?username=${enc(user)}&password=${enc(pass)}`;
-
-  // 1. Try JSON API (no CORS issue — same origin stream URLs)
   try{
     toast2('⏳ Kanallar yükleniyor…');
     const [stxt, ctxt]=await Promise.allSettled([
       sfetch(`${base}&action=get_live_streams`, 25000),
       sfetch(`${base}&action=get_live_categories`, 15000),
     ]);
-
     if(stxt.status==='fulfilled'){
       const streams=JSON.parse(stxt.value);
       if(Array.isArray(streams) && streams.length){
@@ -911,7 +888,6 @@ async function doLoadXtream(){
         try{ if(ctxt.status==='fulfilled') cats=JSON.parse(ctxt.value); }catch(e){}
         const cn={};
         cats.forEach(c=>{ cn[c.category_id]=c.category_name; });
-
         const result=streams.map(item=>{
           const sid=item.stream_id||'';
           const url=`${host}/live/${enc(user)}/${enc(pass)}/${sid}.ts`;
@@ -923,15 +899,12 @@ async function doLoadXtream(){
             uid:   mkuid(item.name||'', String(sid)),
           };
         });
-
         applyChannels(result, name, 'xtream', {host,user,pass});
         setBtn('xbtn','Bağlan ve Yükle',false);
         return;
       }
     }
   }catch(ex){}
-
-  // 2. Fallback: M3U get.php endpoint
   toast2('⏳ M3U yöntemi deneniyor…');
   const m3uUrl=`${host}/get.php?username=${enc(user)}&password=${enc(pass)}&type=m3u_plus&output=ts`;
   try{
@@ -942,11 +915,8 @@ async function doLoadXtream(){
       return;
     }
   }catch(ex){}
-
-  // 3. All failed — show download helper pointing to M3U URL
   toast2('❌ Bağlanamadı');
   setBtn('xbtn','Bağlan ve Yükle',false);
-  // Show download helper in M3U tab
   stab('m3u', document.querySelectorAll('.stab')[0]);
   $('murl').value='';
   showDownloadHelper(m3uUrl, name);
@@ -957,7 +927,6 @@ function setBtn(id,txt,dis){
   b.textContent=txt; b.disabled=dis; b.style.opacity=dis?'.4':'1';
 }
 
-/* file input */
 $('finput').addEventListener('change',function(e){
   const f=e.target.files[0]; if(!f) return;
   const name=($('fname').value||'').trim()||f.name;
@@ -975,19 +944,12 @@ function applyChannels(list, name, type, cfg){
     return;
   }
   const sid=mkuid(name, JSON.stringify(cfg));
-
-  // Store per-source
   srcDB[sid]={channels: list};
-
-  // Update source registry
   srcs=srcs.filter(s=>s.id!==sid);
   srcs.push({id:sid, name, type, ...cfg});
   saveDB(); saveSrc();
-
-  // Switch to this source
   activeSrc=sid;
   activeCat='Tümü';
-
   toast2(`✅ ${list.length} kanal yüklendi`);
   requestAnimationFrame(()=>{
     renderSrcSelector();
@@ -998,7 +960,7 @@ function applyChannels(list, name, type, cfg){
 }
 
 /* ══════════════════════════════════════════════
-   SOURCE SELECTOR (topbar dropdown)
+   SOURCE SELECTOR
 ══════════════════════════════════════════════ */
 function renderSrcSelector(){
   const btn=$('srcSelBtn');
@@ -1011,10 +973,7 @@ function renderSrcSelector(){
 function toggleSrcMenu(){
   const menu=$('srcMenu'), bg=$('srcMenuBg');
   if(menu.classList.contains('open')){ closeSrcMenu(); return; }
-
-  // Build menu items
   let html='';
-  // "All sources" option if multiple
   if(srcs.length>1){
     const sel = activeSrc===null;
     html+=`<div class="src-menu-item${sel?' sel':''}" onclick="selectSrc(null)">
@@ -1058,32 +1017,24 @@ function renderLive(){
   const listEl=$('llist'), emptyEl=$('lempty');
   const cntEl=$('lcnt'), catsEl=$('lcats');
   if(!listEl) return;
-
   const channels=getChannels();
-
-  // Categories — no "Tümü", first cat auto-selected if none active
   const cats=[]; const seen=new Set();
   channels.forEach(c=>{ if(c.group&&!seen.has(c.group)){seen.add(c.group);cats.push(c.group);} });
-  // If activeCat doesn't exist in this source's cats, reset to first
   if(activeCat!=='Tümü' && cats.length && !cats.includes(activeCat)) activeCat='Tümü';
   catsEl.innerHTML=cats.map(c=>
     `<div class="pill${c===activeCat?' on':''}" onclick="setCat('${c.replace(/'/g,"\\'")}')">
       ${esc(c)}</div>`
   ).join('');
-
-  // Filter
   const q=($('lq')?.value||'').toLowerCase().trim();
   let list=channels;
   if(activeCat && activeCat!=='Tümü') list=list.filter(c=>c.group===activeCat);
   if(q) list=list.filter(c=>c.name.toLowerCase().includes(q));
   filtered=list;
-
   if(!channels.length){
     listEl.innerHTML=''; listEl.parentElement.style.display='none';
     emptyEl.style.display=''; cntEl.textContent=''; return;
   }
   listEl.parentElement.style.display=''; emptyEl.style.display='none';
-
   if(list.length){
     cntEl.textContent=list.length+' kanal';
     renderChunk(list, listEl, 0, 60);
@@ -1103,8 +1054,7 @@ function renderChunk(list, container, start, chunkSize){
     const ch=list[i];
     const el=document.createElement('div');
     el.innerHTML=chHtml(ch,i);
-    const node=el.firstElementChild;
-    frag.appendChild(node);
+    frag.appendChild(el.firstElementChild);
   }
   container.appendChild(frag);
   if(end<list.length){
@@ -1143,7 +1093,7 @@ function doFilter(){
 }
 
 /* ══════════════════════════════════════════════
-   PROXY
+   PROXY — AKILLI KULLANIM
 ══════════════════════════════════════════════ */
 let proxyUrl = '';
 
@@ -1157,6 +1107,12 @@ function saveProxy(){
   proxyUrl = ($('proxy-url')?.value || '').trim().replace(/\/+$/,'');
   try{ localStorage.setItem('otv_proxy', proxyUrl); }catch(e){}
   $('proxy-status').textContent = proxyUrl ? '✅ Proxy aktif' : '';
+  // Proxy değişince debug butonunu göster (eğer kanal varsa)
+  if(proxyUrl && getChannels().length){
+    $('debug-btn').style.display='block';
+  } else {
+    $('debug-btn').style.display='none';
+  }
 }
 
 async function testProxy(){
@@ -1172,9 +1128,10 @@ async function testProxy(){
       try{ localStorage.setItem('otv_proxy', proxyUrl); }catch(e){}
       statusEl.textContent = '✅ Proxy çalışıyor!';
       toast2('✅ Proxy bağlantısı başarılı');
-      // debug butonunu göster
-      const chs = getChannels();
-      if(chs.length){ $('debug-btn').style.display='block'; }
+      // Debug butonunu göster
+      if(getChannels().length){
+        $('debug-btn').style.display='block';
+      }
     } else {
       statusEl.textContent = '❌ Proxy yanıt verdi ama GlyphTV Worker değil';
     }
@@ -1183,6 +1140,7 @@ async function testProxy(){
   }
 }
 
+// Debug fonksiyonu (eskisi gibi)
 async function debugStream(){
   const chs = getChannels();
   if(!chs.length){ toast2('Önce bir kaynak yükle'); return; }
@@ -1209,7 +1167,6 @@ async function debugStream(){
       txt += `İçerik: ${d.bodyPreview || '(boş)'}\n\n`;
     });
 
-    // En iyi UA'yı bul
     const working = data.find(d => d.isWorking && !d.error);
     if(working){
       txt += `\n✅ ${working.ua} ile çalışıyor!`;
@@ -1226,37 +1183,31 @@ async function debugStream(){
   }
 }
 
-// Stream URL'sini proxy üzerinden geçir
+// YENİ: Sadece ham akışlarda proxy kullanan url üretici
 function proxyStreamUrl(url){
   if(!proxyUrl || !url) return url;
-  return proxyUrl + '/proxy?url=' + encodeURIComponent(url);
+  // Yalnızca .ts .mpeg .mpg gibi uzantılı veya uzantısız ham akışlarda proxy'le,
+  // .m3u8 ise dokunma.
+  if(/\.(ts|mpeg|mpg)(\?|$)/i.test(url) || !/\.\w+(\?|$)/.test(url)){
+    return proxyUrl + '/proxy?url=' + encodeURIComponent(url);
+  }
+  return url; // .m3u8 ise direkt dönsün
 }
 
+let _pv = 0;
+const _urlCache = {};
 
-let _pv = 0; // play version — stale callbacks ignore
-
-/* Kanal URL'sinin formatını bir kez test edip sakla */
-const _urlCache = {}; // uid → working url
-
-/* Sadece gerçekten gerekli URL'leri dene — en az sayıda */
 function urlCandidates(url){
   if(!url) return [];
-
-  // Daha önce çalışan URL varsa onu önce dene
   const cached = _urlCache[url];
   const base = buildCandidates(url);
-
-  // Proxy aktifse: her URL'nin proxy versiyonunu başa ekle
   let candidates;
   if(proxyUrl){
     const proxied = base.map(u => proxyStreamUrl(u));
-    // Deduplicate: proxied önce, sonra direkt
     candidates = [...proxied, ...base];
   } else {
     candidates = base;
   }
-
-  // Cache varsa o öne geçsin
   if(cached){
     candidates = [cached, ...candidates.filter(u => u !== cached)];
   }
@@ -1264,8 +1215,6 @@ function urlCandidates(url){
 }
 
 function cleanUrl(u){
-  // :443 kaldır (iOS Safari standart HTTPS portunu bazen reddeder)
-  // :80 kaldır (HTTP standart port)
   return u.replace(/:443([/?#])/g,'$1').replace(/:443$/,'')
           .replace(/:80([/?#])/g,'$1').replace(/:80$/,'');
 }
@@ -1273,8 +1222,6 @@ function cleanUrl(u){
 function buildCandidates(url){
   const clean = cleanUrl(url);
   const isHttp = url.startsWith('http://');
-
-  // https:// → temizlenmiş URL ile dene
   if(!isHttp){
     const variants = clean !== url ? [clean, url] : [url];
     if(/\.m3u8(\?|$)/i.test(url)) return variants;
@@ -1282,20 +1229,15 @@ function buildCandidates(url){
       const m = clean.replace(/\.(ts|mpeg|mpg)(\?.*)?$/i,'.m3u8$2');
       return [m, ...variants];
     }
-    // Uzantısız (/play/TOKEN gibi) — önce temiz URL direkt, sonra .m3u8 ekle
     return [...variants, clean+'.m3u8', url+'.m3u8'];
   }
-
-  // http:// → https versiyonlarını üret
   const https = cleanUrl(url.replace(/^http:\/\//,'https://'));
   const httpsRaw = url.replace(/^http:\/\//,'https://');
-
   if(/\.m3u8(\?|$)/i.test(url)) return [https, httpsRaw, url];
   if(/\.(ts|mpeg|mpg)(\?|$)/i.test(url)){
     const m3u8 = https.replace(/\.(ts|mpeg|mpg)(\?.*)?$/i,'.m3u8$2');
     return [m3u8, https, httpsRaw, url];
   }
-  // Uzantısız
   return [https, https+'.m3u8', httpsRaw, url];
 }
 
@@ -1303,29 +1245,22 @@ function playCh(uid){
   const channels = getChannels();
   const ch = channels.find(c=>c.uid===uid);
   if(!ch) return;
-
   _pv++;
   const ver = _pv;
-
   curCh = ch;
   curIdx = filtered.findIndex(c=>c.uid===uid);
   if(curIdx===-1) curIdx = channels.indexOf(ch);
-
   const v = $('vid');
-
-  // Temiz reset
   v.oncanplay = null; v.onerror = null;
   clearTimeout(v._bufTimer); clearTimeout(v._toTimer);
   v.pause();
-  v.src = ''; // removeAttribute yerine boş string — daha hızlı reset
+  v.src = '';
   v.load();
-
   $('mpname').textContent = ch.name;
   $('mpgrp').textContent  = ch.group;
   $('mplayer').classList.add('open');
   $('pdot').classList.add('v');
-  showBuf(true); // buffering göster
-
+  showBuf(true);
   const cands = urlCandidates(ch.url);
   let attempt = 0;
 
@@ -1339,12 +1274,9 @@ function playCh(uid){
         toast2('Bu kanal şu an açılamıyor');
       return;
     }
-
     const url = cands[attempt++];
     v.oncanplay = null; v.onerror = null;
     clearTimeout(v._toTimer);
-
-    // İlk deneme için 20s, sonrakiler için 10s timeout
     const timeoutMs = attempt === 1 ? 20000 : 10000;
     v._toTimer = setTimeout(()=>{
       if(_pv !== ver) return;
@@ -1358,30 +1290,22 @@ function playCh(uid){
       clearTimeout(v._toTimer);
       v.oncanplay = null; v.onerror = null;
       v.pause(); v.src = ''; v.load();
-
-      // --- YENİ: format hatasını yakala ve direkt bilgi ver ---
       if (v.error && v.error.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED) {
         showBuf(false);
         toast2('📵 iOS bu akış formatını desteklemiyor (genelde .ts). HLS (.m3u8) gerekiyor.', 5000);
-        console.warn('Desteklenmeyen format:', ch.url);
-        return; // diğer adayları denemeye gerek yok
+        return;
       }
-      // --- YENİ SONU ---
-
       next();
     };
 
-    // canplay = stream açıldı, buffering bitti
     v.oncanplay = ()=>{
       if(_pv !== ver) return;
       clearTimeout(v._toTimer);
-      _urlCache[ch.url] = url; // çalışan URL'yi kaydet
+      _urlCache[ch.url] = url;
       showBuf(false);
     };
 
     v.src = url;
-    // load() çağırma — play() zaten yükler, load() ekstra gecikme yaratır
-
     const p = v.play();
     if(p) p.catch(err=>{
       if(_pv !== ver || err.name === 'AbortError') return;
@@ -1395,11 +1319,9 @@ function playCh(uid){
 
   next();
 
-  // Buffering başladı — waiting event
   v.onwaiting = ()=>{
     if(_pv !== ver) return;
     showBuf(true);
-    // 20s bekledikten sonra sonraki URL'yi dene
     clearTimeout(v._bufTimer);
     v._bufTimer = setTimeout(()=>{
       if(_pv !== ver) return;
@@ -1412,7 +1334,6 @@ function playCh(uid){
   };
   v.onplaying = ()=>{ if(_pv===ver){ showBuf(false); clearTimeout(v._bufTimer); } };
 
-  // Now-playing marker
   document.querySelectorAll('.chi.now').forEach(el=>el.classList.remove('now'));
   const el = document.querySelector(`.chi[data-uid="${uid}"]`);
   if(el){
@@ -1432,7 +1353,6 @@ function showBuf(on){
     b.style.cssText='position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45);z-index:10;border-radius:12px;pointer-events:none;';
     b.innerHTML='<div style="width:32px;height:32px;border:3px solid rgba(255,255,255,.2);border-top-color:var(--acc);border-radius:50%;animation:spin .8s linear infinite"></div>';
     const wrap = qs('.mpwrap'); if(wrap) wrap.appendChild(b);
-    // spin keyframe
     if(!document.getElementById('spin-style')){
       const s=document.createElement('style');s.id='spin-style';
       s.textContent='@keyframes spin{to{transform:rotate(360deg)}}';
@@ -1494,7 +1414,6 @@ function updateSeek(){
   $('mptime').textContent=fmt(v.currentTime)+' / '+fmt(v.duration);
 }
 
-/* seek */
 function seekStart(e){
   e.preventDefault(); seeking=true; seekDo(e);
   const mv=ev=>{ if(seeking) seekDo(ev); };
@@ -1526,13 +1445,11 @@ function toggleFav(e, uid){
   e.stopPropagation();
   favs.has(uid) ? favs.delete(uid) : favs.add(uid);
   saveFav();
-  // update just the heart button
   document.querySelectorAll(`.fb[data-uid="${uid}"]`).forEach(btn=>{
     const on=favs.has(uid);
     btn.textContent=on?'❤️':'🤍';
     btn.classList.toggle('on',on);
   });
-  // if fav screen visible, re-render it
   if(qs('#scr-fav.on')) renderFavs();
 }
 
@@ -1595,16 +1512,11 @@ function renderSrcList(){
 function openCatManager(srcId){
   const chs = srcDB[srcId]?.channels||[];
   if(!chs.length){ toast2('Bu kaynakta kanal yok'); return; }
-
-  // Tüm kategorileri al
   const cats=[...new Set(chs.map(c=>c.group||'Genel'))].sort((a,b)=>a.localeCompare(b,'tr'));
   const hidden = hiddenCats[srcId] || new Set();
   const src = srcs.find(s=>s.id===srcId);
-
-  // Modal oluştur
   let modal = $('cat-modal');
   if(modal) modal.remove();
-
   modal = document.createElement('div');
   modal.id = 'cat-modal';
   modal.style.cssText = `
@@ -1613,10 +1525,8 @@ function openCatManager(srcId){
     display:flex;align-items:flex-end;justify-content:center;
     padding:0;
   `;
-
   const counts = {};
   chs.forEach(c=>{ counts[c.group||'Genel']=(counts[c.group||'Genel']||0)+1; });
-
   modal.innerHTML = `
     <div style="
       background:#1a1a1a;border-radius:20px 20px 0 0;
@@ -1625,7 +1535,6 @@ function openCatManager(srcId){
       border:1px solid rgba(255,255,255,.12);border-bottom:none;
       padding-bottom:calc(env(safe-area-inset-bottom,0px) + 8px);
     ">
-      <!-- Header -->
       <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px 10px;border-bottom:1px solid rgba(255,255,255,.08);flex-shrink:0">
         <div>
           <div style="font-size:15px;font-weight:700">${esc(src?.name||'Kaynak')} — Kategoriler</div>
@@ -1633,12 +1542,10 @@ function openCatManager(srcId){
         </div>
         <button onclick="$('cat-modal').remove()" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);color:var(--t2);border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center">✕</button>
       </div>
-      <!-- Hızlı butonlar -->
       <div style="display:flex;gap:8px;padding:10px 16px 8px;flex-shrink:0">
         <button onclick="selectAllCats('${srcId}',true)" style="flex:1;padding:7px;border-radius:9px;border:1px solid var(--gbr);background:rgba(34,197,94,.12);color:#22c55e;font-size:12px;font-weight:600;cursor:pointer">✅ Tümünü Göster</button>
         <button onclick="selectAllCats('${srcId}',false)" style="flex:1;padding:7px;border-radius:9px;border:1px solid var(--gbr);background:rgba(239,68,68,.1);color:var(--red);font-size:12px;font-weight:600;cursor:pointer">🙈 Tümünü Gizle</button>
       </div>
-      <!-- Kategori listesi -->
       <div style="overflow-y:auto;flex:1;padding:0 10px 10px" id="cat-list">
         ${cats.map(cat=>{
           const isHidden = hidden.has(cat);
@@ -1654,14 +1561,11 @@ function openCatManager(srcId){
           </div>`;
         }).join('')}
       </div>
-      <!-- Footer -->
       <div style="padding:10px 16px 4px;flex-shrink:0;border-top:1px solid rgba(255,255,255,.08)">
         <button onclick="applyCatFilter('${srcId}')" style="width:100%;padding:13px;border-radius:13px;border:none;background:#22c55e;color:#fff;font-size:14px;font-weight:700;cursor:pointer">Uygula</button>
       </div>
     </div>
   `;
-
-  // Geçici hidden state
   modal._pending = new Set(hidden);
   modal._srcId = srcId;
   document.body.appendChild(modal);
@@ -1674,7 +1578,6 @@ function toggleCat(srcId, cat){
   const row = document.getElementById('cat-row-'+id);
   const chk = document.getElementById('cat-chk-'+id);
   if(!row||!chk) return;
-
   if(modal._pending.has(cat)){
     modal._pending.delete(cat);
     chk.style.borderColor='#22c55e'; chk.style.background='#22c55e';
@@ -1695,8 +1598,6 @@ function selectAllCats(srcId, show){
   if(!modal._pending) modal._pending = new Set();
   if(show) modal._pending.clear();
   else cats.forEach(c=>modal._pending.add(c));
-
-  // UI güncelle
   cats.forEach(cat=>{
     const id=mkuid(cat,srcId);
     const row=document.getElementById('cat-row-'+id);
@@ -1789,7 +1690,6 @@ function goNav(name, el){
   const sc=$('scr-'+name);
   if(sc) sc.classList.add('on');
   if(el) el.classList.add('on');
-
   requestAnimationFrame(()=>{
     if(name==='live')     renderLive();
     else if(name==='fav') renderFavs();
@@ -1806,6 +1706,10 @@ function init(){
   if(!activeSrc && srcs.length) activeSrc=srcs[srcs.length-1].id;
   renderSrcSelector();
   renderLive();
+  // debug butonunu başlangıçta kontrol et
+  if(proxyUrl && getChannels().length){
+    $('debug-btn').style.display='block';
+  }
   if('serviceWorker' in navigator){
     navigator.serviceWorker.register('./sw.js').catch(()=>{});
   }
