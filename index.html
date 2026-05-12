@@ -1189,7 +1189,7 @@ async function debugStream(){
 function proxyStreamUrl(url){
   if(!proxyUrl || !url) return url;
   if(/\.(ts|mpeg|mpg)(\?|$)/i.test(url) || !/\.\w+(\?|$)/.test(url)){
-    let link = proxyUrl + '/proxy?url=' + encodeURIComponent(url);
+    return proxyUrl + '/hls?url=' + encodeURIComponent(url);
     if(panelReferer) link += '&referer=' + encodeURIComponent(panelReferer);
     return link;
   }
