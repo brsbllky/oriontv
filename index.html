@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="OrionTV">
+<meta name="apple-mobile-web-app-title" content="GlyphTV">
 <meta name="theme-color" content="#07001a">
 <!-- Allow mixed HTTP content for IPTV streams -->
 <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; media-src * blob: data:;">
-<title>OrionTV</title>
+<title>GlyphTV</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="app_icon.png">
 <style>
@@ -366,7 +366,7 @@ html,body{height:100%;width:100%;overflow:hidden;
   <!-- TOPBAR -->
   <div id="topbar">
     <div class="logo-img"><img src="app_icon.png" alt="O"></div>
-    <span class="logo-name">OrionTV</span>
+    <span class="logo-name">GlyphTV</span>
     <div style="flex:1"></div>
     <!-- Source selector -->
     <button class="src-sel-btn g" id="srcSelBtn" onclick="toggleSrcMenu()" style="display:none">
@@ -559,7 +559,7 @@ html,body{height:100%;width:100%;overflow:hidden;
           <div class="sico icg">
             <img src="app_icon.png" style="width:20px;height:20px;border-radius:5px;object-fit:cover">
           </div>
-          <div class="stxt"><div class="sttl">OrionTV</div><div class="ssub">Versiyon 2.0 — Kişisel IPTV</div></div>
+          <div class="stxt"><div class="sttl">GlyphTV</div><div class="ssub">Versiyon 2.0 — Kişisel IPTV</div></div>
         </div>
         <div class="srow" onclick="toast2('Safari → Paylaş → Ana Ekrana Ekle')">
           <div class="sico icb">📱</div>
@@ -1168,7 +1168,7 @@ async function testProxy(){
   try{
     const r = await fetch(url + '/', { signal: AbortSignal.timeout(8000) });
     const t = await r.text();
-    if(r.ok && t.includes('OrionTV')){
+    if(r.ok && t.includes('GlyphTV')){
       proxyUrl = url;
       try{ localStorage.setItem('otv_proxy', proxyUrl); }catch(e){}
       statusEl.textContent = '✅ Proxy çalışıyor!';
@@ -1177,7 +1177,7 @@ async function testProxy(){
       const chs = getChannels();
       if(chs.length){ $('debug-btn').style.display='block'; }
     } else {
-      statusEl.textContent = '❌ Proxy yanıt verdi ama OrionTV Worker değil';
+      statusEl.textContent = '❌ Proxy yanıt verdi ama GlyphTV Worker değil';
     }
   }catch(e){
     statusEl.textContent = '❌ Bağlanamadı — URL\'yi kontrol et';

@@ -1,6 +1,6 @@
 {
-  "name": "OrionTV",
-  "short_name": "OrionTV",
+  "name": "GlyphTV",
+  "short_name": "GlyphTV",
   "description": "Kişisel IPTV oynatıcı",
   "start_url": "./index.html",
   "display": "standalone",

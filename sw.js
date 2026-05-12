@@ -1,4 +1,4 @@
-const CACHE = 'orion-v1';
+const CACHE = 'glyph-v1';
 const SHELL = ['./index.html', './manifest.json', './app_icon.png'];
 
 self.addEventListener('install', e => {
