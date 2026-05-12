@@ -524,6 +524,20 @@ html,body{height:100%;width:100%;overflow:hidden;
         </div>
       </div>
       <div id="proxy-status" style="font-size:11px;color:var(--t3);padding:0 2px 4px;min-height:16px"></div>
+
+      <!-- YENİ: Panel Referer -->
+      <div class="fw">
+        <span class="flbl">Panel Referer (Hotlink Koruması İçin)</span>
+        <input class="ginp" id="panel-referer" type="url" 
+               placeholder="http://sunucu.com:8080"
+               autocorrect="off" autocapitalize="none" spellcheck="false"
+               oninput="savePanelReferer()">
+      </div>
+      <div style="font-size:10px;color:var(--t3);margin-top:-6px;margin-bottom:8px">
+        Bazı paneller sadece kendi sitelerinden gelen isteklere izin verir. 
+        Buraya panelin adresini yaz (örn. http://sunucu:8080).
+      </div>
+
       <!-- Debug: ilk kanalı test et -->
       <button onclick="debugStream()" id="debug-btn"
         style="width:100%;padding:9px;border-radius:11px;border:1px solid var(--gbr);background:var(--gb);color:var(--t2);font-size:11px;font-weight:600;cursor:pointer;margin-top:2px;display:none">
@@ -627,14 +641,11 @@ html,body{height:100%;width:100%;overflow:hidden;
 <script>
 'use strict';
 
-/* ══════════════════════════════════════════════
-   UTILS
-══════════════════════════════════════════════ */
+/* ═══════════════════════ UTILS ═══════════════════════ */
 const $  = id => document.getElementById(id);
 const qs = s  => document.querySelector(s);
 function esc(s){
-  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
-                .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 function mkuid(a,b){
   let h=0, s=(a||'')+(b||'');
@@ -651,9 +662,7 @@ function toast2(msg, dur=2600){
   clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('on'),dur);
 }
 
-/* ══════════════════════════════════════════════
-   STATE
-══════════════════════════════════════════════ */
+/* ═══════════════════════ STATE ═══════════════════════ */
 let srcDB     = {};
 let srcs      = [];
 let activeSrc = null;
@@ -678,9 +687,7 @@ function getChannels(){
 }
 let filtered = [];
 
-/* ══════════════════════════════════════════════
-   STORAGE
-══════════════════════════════════════════════ */
+/* ═══════════════════════ STORAGE ═══════════════════════ */
 function loadStorage(){
   try{ const d=localStorage.getItem('otv_db2'); if(d) srcDB=JSON.parse(d); }catch(e){}
   try{ const f=localStorage.getItem('otv_fav'); if(f) favs=new Set(JSON.parse(f)); }catch(e){}
@@ -707,7 +714,6 @@ function loadStorage(){
     }
   }catch(e){}
 }
-
 function saveHidden(){
   try{
     const raw={};
@@ -715,7 +721,6 @@ function saveHidden(){
     localStorage.setItem('otv_hidden', JSON.stringify(raw));
   }catch(e){}
 }
-
 let _dbT;
 function saveDB(){
   clearTimeout(_dbT);
@@ -737,9 +742,7 @@ function saveDB(){
 function saveFav(){ try{ localStorage.setItem('otv_fav',JSON.stringify([...favs])); }catch(e){} }
 function saveSrc(){ try{ localStorage.setItem('otv_src',JSON.stringify(srcs)); }catch(e){} }
 
-/* ══════════════════════════════════════════════
-   M3U PARSER
-══════════════════════════════════════════════ */
+/* ═══════════════════════ M3U PARSER ═══════════════════════ */
 function parseM3U(text){
   const result=[];
   const lines=text.split('\n');
@@ -766,16 +769,13 @@ function parseM3U(text){
   }
   return result;
 }
-
 function isVodOrSeries(g,n,u){
   const s=(g+' '+n+' '+u).toLowerCase();
   return /\/series\/|\/movie\/|\/vod\//.test(s)
       || /\b(movie|vod|series|sinema|cinema|serial)\b/.test(s);
 }
 
-/* ══════════════════════════════════════════════
-   FETCH
-══════════════════════════════════════════════ */
+/* ═══════════════════════ FETCH ═══════════════════════ */
 async function sfetch(url, ms=20000){
   const attempts=[
     ()=>fetch(url, {signal:AbortSignal.timeout(ms)}),
@@ -795,9 +795,7 @@ async function sfetch(url, ms=20000){
   throw new Error('all_failed');
 }
 
-/* ══════════════════════════════════════════════
-   LOAD M3U
-══════════════════════════════════════════════ */
+/* ═══════════════════════ LOAD M3U ═══════════════════════ */
 async function doLoadM3U(){
   const raw=($('murl').value||'').trim();
   const name=($('mname').value||'').trim() || 'M3U Kaynak';
@@ -859,9 +857,7 @@ function showDownloadHelper(url, name){
   $('mbtn').after(div);
 }
 
-/* ══════════════════════════════════════════════
-   LOAD XTREAM
-══════════════════════════════════════════════ */
+/* ═══════════════════════ LOAD XTREAM (HLS denemesi ile) ═══════════════════════ */
 async function doLoadXtream(){
   const host=($('xhost').value||'').trim().replace(/\/+$/,'');
   const user=($('xuser').value||'').trim();
@@ -890,7 +886,8 @@ async function doLoadXtream(){
         cats.forEach(c=>{ cn[c.category_id]=c.category_name; });
         const result=streams.map(item=>{
           const sid=item.stream_id||'';
-          const url=`${host}/live/${enc(user)}/${enc(pass)}/${sid}.ts`;
+          // HLS denemesi: .m3u8 uzantısını kullan
+          const url=`${host}/live/${enc(user)}/${enc(pass)}/${sid}.m3u8`;
           return{
             name:  item.name||'?',
             group: cn[item.category_id]||item.category_name||'Genel',
@@ -935,9 +932,7 @@ $('finput').addEventListener('change',function(e){
   r.readAsText(f);
 });
 
-/* ══════════════════════════════════════════════
-   APPLY CHANNELS
-══════════════════════════════════════════════ */
+/* ═══════════════════════ APPLY CHANNELS ═══════════════════════ */
 function applyChannels(list, name, type, cfg){
   if(!list || !list.length){
     toast2('❌ Kanal bulunamadı. Farklı kaynak veya dosya dene.');
@@ -959,9 +954,7 @@ function applyChannels(list, name, type, cfg){
   });
 }
 
-/* ══════════════════════════════════════════════
-   SOURCE SELECTOR
-══════════════════════════════════════════════ */
+/* ═══════════════════════ SOURCE SELECTOR ═══════════════════════ */
 function renderSrcSelector(){
   const btn=$('srcSelBtn');
   if(!srcs.length){ btn.style.display='none'; return; }
@@ -1010,9 +1003,7 @@ function selectSrc(id){
   renderSrcSelector(); renderLive();
 }
 
-/* ══════════════════════════════════════════════
-   RENDER LIVE
-══════════════════════════════════════════════ */
+/* ═══════════════════════ RENDER LIVE ═══════════════════════ */
 function renderLive(){
   const listEl=$('llist'), emptyEl=$('lempty');
   const cntEl=$('lcnt'), catsEl=$('lcats');
@@ -1092,10 +1083,9 @@ function doFilter(){
   renderLive();
 }
 
-/* ══════════════════════════════════════════════
-   PROXY — AKILLI KULLANIM
-══════════════════════════════════════════════ */
+/* ═══════════════════════ PROXY + REFERER ═══════════════════════ */
 let proxyUrl = '';
+let panelReferer = '';
 
 function loadProxy(){
   try{ proxyUrl = localStorage.getItem('otv_proxy') || ''; }catch(e){}
@@ -1107,7 +1097,21 @@ function saveProxy(){
   proxyUrl = ($('proxy-url')?.value || '').trim().replace(/\/+$/,'');
   try{ localStorage.setItem('otv_proxy', proxyUrl); }catch(e){}
   $('proxy-status').textContent = proxyUrl ? '✅ Proxy aktif' : '';
-  // Proxy değişince debug butonunu göster (eğer kanal varsa)
+  checkDebugBtn();
+}
+
+function loadPanelReferer(){
+  try{ panelReferer = localStorage.getItem('otv_referer') || ''; }catch(e){}
+  const el = $('panel-referer');
+  if(el) el.value = panelReferer;
+}
+
+function savePanelReferer(){
+  panelReferer = ($('panel-referer')?.value || '').trim();
+  try{ localStorage.setItem('otv_referer', panelReferer); }catch(e){}
+}
+
+function checkDebugBtn(){
   if(proxyUrl && getChannels().length){
     $('debug-btn').style.display='block';
   } else {
@@ -1128,10 +1132,7 @@ async function testProxy(){
       try{ localStorage.setItem('otv_proxy', proxyUrl); }catch(e){}
       statusEl.textContent = '✅ Proxy çalışıyor!';
       toast2('✅ Proxy bağlantısı başarılı');
-      // Debug butonunu göster
-      if(getChannels().length){
-        $('debug-btn').style.display='block';
-      }
+      checkDebugBtn();
     } else {
       statusEl.textContent = '❌ Proxy yanıt verdi ama GlyphTV Worker değil';
     }
@@ -1140,14 +1141,15 @@ async function testProxy(){
   }
 }
 
-// Debug fonksiyonu (eskisi gibi)
 async function debugStream(){
   const chs = getChannels();
   if(!chs.length){ toast2('Önce bir kaynak yükle'); return; }
   if(!proxyUrl){ toast2('Proxy URL gerekli'); return; }
 
   const ch = chs[0];
-  const debugUrl = proxyUrl + '/debug?url=' + encodeURIComponent(ch.url);
+  let debugUrl = proxyUrl + '/debug?url=' + encodeURIComponent(ch.url);
+  if(panelReferer) debugUrl += '&referer=' + encodeURIComponent(panelReferer);
+
   const out = $('debug-out');
   out.style.display = 'block';
   out.textContent = '⏳ Sunucu test ediliyor...\nURL: ' + ch.url + '\n';
@@ -1183,17 +1185,18 @@ async function debugStream(){
   }
 }
 
-// YENİ: Sadece ham akışlarda proxy kullanan url üretici
+// Seçici proxy
 function proxyStreamUrl(url){
   if(!proxyUrl || !url) return url;
-  // Yalnızca .ts .mpeg .mpg gibi uzantılı veya uzantısız ham akışlarda proxy'le,
-  // .m3u8 ise dokunma.
   if(/\.(ts|mpeg|mpg)(\?|$)/i.test(url) || !/\.\w+(\?|$)/.test(url)){
-    return proxyUrl + '/proxy?url=' + encodeURIComponent(url);
+    let link = proxyUrl + '/proxy?url=' + encodeURIComponent(url);
+    if(panelReferer) link += '&referer=' + encodeURIComponent(panelReferer);
+    return link;
   }
-  return url; // .m3u8 ise direkt dönsün
+  return url;
 }
 
+/* ═══════════════════════ STREAM PLAYBACK ═══════════════════════ */
 let _pv = 0;
 const _urlCache = {};
 
@@ -1345,7 +1348,6 @@ function playCh(uid){
   }
 }
 
-/* ── Buffering göstergesi ── */
 function showBuf(on){
   let b = $('buf-overlay');
   if(!b){
@@ -1382,8 +1384,6 @@ function togglePlay(){
   else { v.pause(); }
 }
 
-function setIcon(playing){ /* native controls handles this */ }
-
 function skipCh(dir){
   const list=filtered.length ? filtered : getChannels();
   if(!list.length) return;
@@ -1393,12 +1393,11 @@ function skipCh(dir){
   playCh(list[idx].uid);
 }
 
-/* video events */
+/* video time update */
 (()=>{
   const v=$('vid');
   v.addEventListener('timeupdate', updateSeek);
 })();
-
 function updateSeek(){
   const v=$('vid');
   if(!v.duration || !isFinite(v.duration)){
@@ -1413,7 +1412,6 @@ function updateSeek(){
   }
   $('mptime').textContent=fmt(v.currentTime)+' / '+fmt(v.duration);
 }
-
 function seekStart(e){
   e.preventDefault(); seeking=true; seekDo(e);
   const mv=ev=>{ if(seeking) seekDo(ev); };
@@ -1438,9 +1436,7 @@ function seekDo(e){
   if(isFinite(v.duration)) v.currentTime=ratio*v.duration;
 }
 
-/* ══════════════════════════════════════════════
-   FAVORITES
-══════════════════════════════════════════════ */
+/* ═══════════════════════ FAVORITES ═══════════════════════ */
 function toggleFav(e, uid){
   e.stopPropagation();
   favs.has(uid) ? favs.delete(uid) : favs.add(uid);
@@ -1452,7 +1448,6 @@ function toggleFav(e, uid){
   });
   if(qs('#scr-fav.on')) renderFavs();
 }
-
 function renderFavs(){
   const allCh=Object.values(srcDB).flatMap(s=>s.channels||[]);
   const favChs=allCh.filter(c=>favs.has(c.uid));
@@ -1465,7 +1460,6 @@ function renderFavs(){
     listEl.innerHTML=favChs.map((ch,i)=>chHtml(ch,i)).join('');
   } else { scroll.style.display='none'; emptyEl.style.display=''; }
 }
-
 function exportFavs(){
   const allCh=Object.values(srcDB).flatMap(s=>s.channels||[]);
   const list=allCh.filter(c=>favs.has(c.uid));
@@ -1480,9 +1474,7 @@ function exportFavs(){
   toast2('✅ Favoriler indirildi');
 }
 
-/* ══════════════════════════════════════════════
-   SOURCE LIST + EXPORT
-══════════════════════════════════════════════ */
+/* ═══════════════════════ SOURCE MANAGEMENT ═══════════════════════ */
 function renderSrcList(){
   const w=$('srclist'); if(!w) return;
   if(!srcs.length){
@@ -1507,8 +1499,6 @@ function renderSrcList(){
     </div>`;
   }).join('');
 }
-
-/* ── KATEGORİ YÖNETİCİSİ MODAL ── */
 function openCatManager(srcId){
   const chs = srcDB[srcId]?.channels||[];
   if(!chs.length){ toast2('Bu kaynakta kanal yok'); return; }
@@ -1522,24 +1512,13 @@ function openCatManager(srcId){
   modal.style.cssText = `
     position:fixed;inset:0;z-index:900;
     background:rgba(0,0,0,.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
-    display:flex;align-items:flex-end;justify-content:center;
-    padding:0;
-  `;
+    display:flex;align-items:flex-end;justify-content:center;padding:0;`;
   const counts = {};
   chs.forEach(c=>{ counts[c.group||'Genel']=(counts[c.group||'Genel']||0)+1; });
   modal.innerHTML = `
-    <div style="
-      background:#1a1a1a;border-radius:20px 20px 0 0;
-      width:100%;max-width:600px;
-      max-height:85vh;display:flex;flex-direction:column;
-      border:1px solid rgba(255,255,255,.12);border-bottom:none;
-      padding-bottom:calc(env(safe-area-inset-bottom,0px) + 8px);
-    ">
+    <div style="background:#1a1a1a;border-radius:20px 20px 0 0;width:100%;max-width:600px;max-height:85vh;display:flex;flex-direction:column;border:1px solid rgba(255,255,255,.12);border-bottom:none;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 8px);">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px 10px;border-bottom:1px solid rgba(255,255,255,.08);flex-shrink:0">
-        <div>
-          <div style="font-size:15px;font-weight:700">${esc(src?.name||'Kaynak')} — Kategoriler</div>
-          <div style="font-size:11px;color:var(--t3);margin-top:2px">${cats.length} kategori · İstemediğin kategorileri gizle</div>
-        </div>
+        <div><div style="font-size:15px;font-weight:700">${esc(src?.name||'Kaynak')} — Kategoriler</div><div style="font-size:11px;color:var(--t3);margin-top:2px">${cats.length} kategori</div></div>
         <button onclick="$('cat-modal').remove()" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);color:var(--t2);border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center">✕</button>
       </div>
       <div style="display:flex;gap:8px;padding:10px 16px 8px;flex-shrink:0">
@@ -1554,23 +1533,18 @@ function openCatManager(srcId){
             <div style="width:22px;height:22px;border-radius:6px;border:2px solid ${isHidden?'rgba(255,255,255,.2)':'#22c55e'};background:${isHidden?'transparent':'#22c55e'};display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:.15s" id="cat-chk-${mkuid(cat,srcId)}">
               ${isHidden?'':'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"/></svg>'}
             </div>
-            <div style="flex:1;min-width:0">
-              <div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(cat)}</div>
-              <div style="font-size:10px;color:var(--t3);margin-top:1px">${cnt} kanal</div>
-            </div>
+            <div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(cat)}</div><div style="font-size:10px;color:var(--t3);margin-top:1px">${cnt} kanal</div></div>
           </div>`;
         }).join('')}
       </div>
       <div style="padding:10px 16px 4px;flex-shrink:0;border-top:1px solid rgba(255,255,255,.08)">
         <button onclick="applyCatFilter('${srcId}')" style="width:100%;padding:13px;border-radius:13px;border:none;background:#22c55e;color:#fff;font-size:14px;font-weight:700;cursor:pointer">Uygula</button>
       </div>
-    </div>
-  `;
+    </div>`;
   modal._pending = new Set(hidden);
   modal._srcId = srcId;
   document.body.appendChild(modal);
 }
-
 function toggleCat(srcId, cat){
   const modal = $('cat-modal'); if(!modal) return;
   if(!modal._pending) modal._pending = new Set(hiddenCats[srcId]||[]);
@@ -1590,7 +1564,6 @@ function toggleCat(srcId, cat){
     row.style.opacity='.5';
   }
 }
-
 function selectAllCats(srcId, show){
   const modal = $('cat-modal'); if(!modal) return;
   const chs = srcDB[srcId]?.channels||[];
@@ -1613,7 +1586,6 @@ function selectAllCats(srcId, show){
     }
   });
 }
-
 function applyCatFilter(srcId){
   const modal = $('cat-modal'); if(!modal) return;
   if(modal._pending.size === 0){
@@ -1627,7 +1599,6 @@ function applyCatFilter(srcId){
   renderLive(); renderSrcList();
   toast2('✅ Kategori filtresi uygulandı');
 }
-
 function exportSrc(id){
   const s=srcs.find(x=>x.id===id); if(!s) return;
   const chs=srcDB[id]?.channels||[];
@@ -1641,7 +1612,6 @@ function exportSrc(id){
   a.download=`${s.name.replace(/[^a-z0-9]/gi,'_')}.m3u`; a.click();
   toast2(`✅ ${s.name} dışa aktarıldı`);
 }
-
 function delSrc(id){
   if(!confirm('Bu kaynağı kaldır?')) return;
   srcs=srcs.filter(s=>s.id!==id);
@@ -1652,7 +1622,6 @@ function delSrc(id){
   renderSrcSelector(); renderLive(); renderSrcList(); renderFavs();
   toast2('🗑 Kaynak kaldırıldı');
 }
-
 function clearAll(){
   if(!confirm('Tüm kanallar ve favoriler silinsin mi?')) return;
   srcDB={}; filtered=[]; favs=new Set(); srcs=[]; hiddenCats={};
@@ -1662,9 +1631,7 @@ function clearAll(){
   toast2('🗑 Temizlendi');
 }
 
-/* ══════════════════════════════════════════════
-   SETTINGS HELPERS
-══════════════════════════════════════════════ */
+/* ═══════════════════════ SETTINGS HELPERS ═══════════════════════ */
 function stab(name, el){
   document.querySelectorAll('.stab').forEach(t=>t.classList.remove('on'));
   document.querySelectorAll('.spanel').forEach(p=>p.classList.remove('on'));
@@ -1677,13 +1644,10 @@ function togglePwd(){
   e.textContent=i.type==='password'?'👁':'🙈';
 }
 function goSettings(){
-  const el=qs('[data-s=settings]');
-  goNav('settings', el);
+  goNav('settings', qs('[data-s=settings]'));
 }
 
-/* ══════════════════════════════════════════════
-   NAVIGATION
-══════════════════════════════════════════════ */
+/* ═══════════════════════ NAVIGATION ═══════════════════════ */
 function goNav(name, el){
   document.querySelectorAll('.scr').forEach(s=>s.classList.remove('on'));
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
@@ -1697,19 +1661,15 @@ function goNav(name, el){
   });
 }
 
-/* ══════════════════════════════════════════════
-   INIT
-══════════════════════════════════════════════ */
+/* ═══════════════════════ INIT ═══════════════════════ */
 function init(){
   loadStorage();
   loadProxy();
+  loadPanelReferer();
   if(!activeSrc && srcs.length) activeSrc=srcs[srcs.length-1].id;
   renderSrcSelector();
   renderLive();
-  // debug butonunu başlangıçta kontrol et
-  if(proxyUrl && getChannels().length){
-    $('debug-btn').style.display='block';
-  }
+  checkDebugBtn();
   if('serviceWorker' in navigator){
     navigator.serviceWorker.register('./sw.js').catch(()=>{});
   }
