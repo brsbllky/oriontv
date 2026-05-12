@@ -7,7 +7,6 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="GlyphTV">
 <meta name="theme-color" content="#07001a">
-<!-- Allow mixed HTTP content for IPTV streams -->
 <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; media-src * blob: data:;">
 <title>GlyphTV</title>
 <link rel="manifest" href="manifest.json">
@@ -1359,6 +1358,16 @@ function playCh(uid){
       clearTimeout(v._toTimer);
       v.oncanplay = null; v.onerror = null;
       v.pause(); v.src = ''; v.load();
+
+      // --- YENİ: format hatasını yakala ve direkt bilgi ver ---
+      if (v.error && v.error.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED) {
+        showBuf(false);
+        toast2('📵 iOS bu akış formatını desteklemiyor (genelde .ts). HLS (.m3u8) gerekiyor.', 5000);
+        console.warn('Desteklenmeyen format:', ch.url);
+        return; // diğer adayları denemeye gerek yok
+      }
+      // --- YENİ SONU ---
+
       next();
     };
 
