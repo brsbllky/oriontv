@@ -350,7 +350,35 @@ html,body{height:100%;width:100%;overflow:hidden;
   white-space:nowrap;z-index:999;pointer-events:none;
   max-width:88vw;text-align:center;}
 #toast.on{opacity:1;transform:translateX(-50%) translateY(0) scale(1);}
+
+/* ─── EXTERNAL PLAYER BUTTON ─── */
+.ext-btn{display:none;align-items:center;gap:5px;
+  background:none;border:none;color:var(--t2);cursor:pointer;
+  font-size:11px;font-weight:600;padding:5px 6px;flex-shrink:0;
+  border-radius:8px;border:1px solid rgba(255,255,255,.1);}
+.ext-btn svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;}
+.ext-btn:active{opacity:.65;}
+
+/* ─── EXT PLAYER PROMPT (failure overlay) ─── */
+#ext-prompt{display:none;position:absolute;inset:0;z-index:20;
+  align-items:center;justify-content:center;flex-direction:column;gap:10px;
+  background:rgba(7,0,26,.88);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  border-radius:12px;padding:16px;}
+#ext-prompt .ep-title{font-size:13px;font-weight:700;color:var(--t1);text-align:center;}
+#ext-prompt .ep-sub{font-size:10px;color:var(--t3);text-align:center;line-height:1.5;margin-top:-4px;}
+.ep-btns{display:flex;gap:7px;flex-wrap:wrap;justify-content:center;}
+.ep-btn{display:flex;align-items:center;gap:6px;padding:9px 14px;
+  border-radius:11px;border:none;cursor:pointer;font-size:12px;font-weight:700;
+  color:#fff;text-decoration:none;}
+.ep-vlc{background:linear-gradient(135deg,#e66000,#ff8c00);}
+.ep-infuse{background:linear-gradient(135deg,#6e2cf4,#9b59f5);}
+.ep-out{background:linear-gradient(135deg,#0068d0,#0a84ff);}
+.ep-copy{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);font-size:11px;}
+.ep-retry{background:rgba(0,200,255,.12);border:1px solid rgba(0,200,255,.3);
+  color:var(--acc);font-size:11px;}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.13/hls.min.js" crossorigin="anonymous"></script>
 </head>
 <body>
 <div id="mesh">
@@ -392,6 +420,10 @@ html,body{height:100%;width:100%;overflow:hidden;
             <div class="mpname" id="mpname">—</div>
             <div class="mpgrp" id="mpgrp">—</div>
           </div>
+          <button class="ext-btn" id="ext-btn" onclick="showExtPrompt()">
+            <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15,3 21,3 21,9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            Dış
+          </button>
           <button class="mpc" onclick="skipCh(-1)" title="Önceki kanal">
             <svg viewBox="0 0 24 24"><polygon points="19,20 9,12 19,4"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
           </button>
@@ -408,6 +440,20 @@ html,body{height:100%;width:100%;overflow:hidden;
           </div>
         </div>
         <div class="mptime" id="mptime" style="display:none"></div>
+        <!-- External player prompt -->
+        <div id="ext-prompt">
+          <div class="ep-title">⚠️ Kanal açılamadı</div>
+          <div class="ep-sub">Bu kanal tarayıcıda oynatılamıyor.<br>Bir dış oynatıcıya yönlendir:</div>
+          <div class="ep-btns">
+            <button class="ep-btn ep-vlc" onclick="openExternal('vlc')">📺 VLC</button>
+            <button class="ep-btn ep-infuse" onclick="openExternal('infuse')">🎬 Infuse</button>
+            <button class="ep-btn ep-out" onclick="openExternal('outplayer')">▶ Outplayer</button>
+          </div>
+          <div class="ep-btns" style="margin-top:-2px">
+            <button class="ep-btn ep-copy" onclick="copyStreamUrl()">📋 URL Kopyala</button>
+            <button class="ep-btn ep-retry" onclick="retryPlay()">🔄 Tekrar Dene</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -1092,33 +1138,24 @@ function loadProxy(){
   const el = $('proxy-url');
   if(el) el.value = proxyUrl;
 }
-
 function saveProxy(){
   proxyUrl = ($('proxy-url')?.value || '').trim().replace(/\/+$/,'');
   try{ localStorage.setItem('otv_proxy', proxyUrl); }catch(e){}
   $('proxy-status').textContent = proxyUrl ? '✅ Proxy aktif' : '';
   checkDebugBtn();
 }
-
 function loadPanelReferer(){
   try{ panelReferer = localStorage.getItem('otv_referer') || ''; }catch(e){}
   const el = $('panel-referer');
   if(el) el.value = panelReferer;
 }
-
 function savePanelReferer(){
   panelReferer = ($('panel-referer')?.value || '').trim();
   try{ localStorage.setItem('otv_referer', panelReferer); }catch(e){}
 }
-
 function checkDebugBtn(){
-  if(proxyUrl && getChannels().length){
-    $('debug-btn').style.display='block';
-  } else {
-    $('debug-btn').style.display='none';
-  }
+  $('debug-btn').style.display = (proxyUrl && getChannels().length) ? 'block' : 'none';
 }
-
 async function testProxy(){
   const url = ($('proxy-url')?.value || '').trim().replace(/\/+$/,'');
   if(!url){ toast2('⚠️ Önce Worker URL gir'); return; }
@@ -1136,242 +1173,299 @@ async function testProxy(){
     } else {
       statusEl.textContent = '❌ Proxy yanıt verdi ama GlyphTV Worker değil';
     }
-  }catch(e){
-    statusEl.textContent = '❌ Bağlanamadı — URL\'yi kontrol et';
-  }
+  }catch(e){ statusEl.textContent = '❌ Bağlanamadı — URL\'yi kontrol et'; }
 }
-
 async function debugStream(){
   const chs = getChannels();
   if(!chs.length){ toast2('Önce bir kaynak yükle'); return; }
   if(!proxyUrl){ toast2('Proxy URL gerekli'); return; }
-
   const ch = chs[0];
   let debugUrl = proxyUrl + '/debug?url=' + encodeURIComponent(ch.url);
   if(panelReferer) debugUrl += '&referer=' + encodeURIComponent(panelReferer);
-
   const out = $('debug-out');
   out.style.display = 'block';
   out.textContent = '⏳ Sunucu test ediliyor...\nURL: ' + ch.url + '\n';
-
   try{
     const r = await fetch(debugUrl, { signal: AbortSignal.timeout(20000) });
     const data = await r.json();
-
     let txt = '📡 Kanal: ' + ch.name + '\n🔗 URL: ' + ch.url + '\n\n';
     data.forEach(d => {
       txt += `── ${d.ua} ──\n`;
       if(d.error){ txt += `❌ Hata: ${d.error}\n\n`; return; }
-      txt += `Status: ${d.status}\n`;
-      txt += `Content-Type: ${d.contentType || '?'}\n`;
-      txt += `M3U8 içeriği: ${d.isM3U8 ? '✅ Evet' : '❌ Hayır'}\n`;
-      txt += `Çalışıyor: ${d.isWorking ? '✅' : '❌'}\n`;
-      txt += `İçerik: ${d.bodyPreview || '(boş)'}\n\n`;
+      txt += `Status: ${d.status}\nContent-Type: ${d.contentType||'?'}\nM3U8: ${d.isM3U8?'✅':'❌'}\nÇalışıyor: ${d.isWorking?'✅':'❌'}\nİçerik: ${d.bodyPreview||'(boş)'}\n\n`;
     });
-
     const working = data.find(d => d.isWorking && !d.error);
-    if(working){
-      txt += `\n✅ ${working.ua} ile çalışıyor!`;
-      if(working.isM3U8) txt += '\n✅ HLS stream tespit edildi — oynatılabilir olmalı';
-      else txt += '\n⚠️ M3U8 değil — farklı stream formatı';
-    } else {
-      txt += '\n❌ Hiçbir UA ile çalışmıyor\n';
-      txt += '→ Sağlayıcı IP bazlı kısıtlama yapıyor olabilir';
-    }
-
+    txt += working ? `\n✅ ${working.ua} ile çalışıyor!` : '\n❌ Hiçbir UA ile çalışmıyor';
     out.textContent = txt;
-  }catch(e){
-    out.textContent = '❌ Debug başarısız: ' + e.message;
-  }
+  }catch(e){ out.textContent = '❌ Debug başarısız: ' + e.message; }
 }
 
-// Seçici proxy
-function proxyStreamUrl(url){
-  if(!proxyUrl || !url) return url;
-  if(/\.(ts|mpeg|mpg)(\?|$)/i.test(url) || !/\.\w+(\?|$)/.test(url)){
-    return proxyUrl + '/hls?url=' + encodeURIComponent(url);
-    if(panelReferer) link += '&referer=' + encodeURIComponent(panelReferer);
-    return link;
-  }
-  return url;
+/* ═══════════════════════ SW HLS PROXY URL BUILDER ═══════════════════════ */
+function buildSwUrl(streamUrl){
+  let p = './sw-hls?url=' + encodeURIComponent(streamUrl);
+  if(proxyUrl)     p += '&cf='  + encodeURIComponent(proxyUrl);
+  if(panelReferer) p += '&ref=' + encodeURIComponent(panelReferer);
+  return p;
+}
+function isLikelyHLS(url){
+  return /\.m3u8?(\?|$)/i.test(url)
+      || /\/live\//i.test(url)
+      || /\/get\.php/i.test(url)
+      || !/\.\w{2,5}(\?|$)/.test(url);
 }
 
-/* ═══════════════════════ STREAM PLAYBACK ═══════════════════════ */
+/* ═══════════════════════ HLS.JS ═══════════════════════ */
+let hlsInstance = null;
+function destroyHls(){
+  if(hlsInstance){ try{ hlsInstance.destroy(); }catch(e){} hlsInstance = null; }
+}
+function canUseHlsJs(){
+  return typeof Hls !== 'undefined' && Hls.isSupported();
+}
+function playWithHlsJs(streamUrl, ver, onSuccess, onFail){
+  destroyHls();
+  const v = $('vid');
+  const cfg = { maxBufferLength:20, maxMaxBufferLength:40, enableWorker:false, debug:false };
+  if(proxyUrl){
+    const _pu = proxyUrl, _pr = panelReferer;
+    class CfLoader extends Hls.DefaultConfig.loader {
+      load(ctx, c, cbs){
+        if(!ctx.url.startsWith(_pu) && !ctx.url.startsWith(location.origin)){
+          ctx.url = _pu + '/proxy?url=' + encodeURIComponent(ctx.url);
+          if(_pr) ctx.url += '&referer=' + encodeURIComponent(_pr);
+        }
+        super.load(ctx,c,cbs);
+      }
+    }
+    cfg.loader = CfLoader;
+  }
+  hlsInstance = new Hls(cfg);
+  hlsInstance.loadSource(streamUrl);
+  hlsInstance.attachMedia(v);
+  hlsInstance.on(Hls.Events.MANIFEST_PARSED, ()=>{
+    if(_pv !== ver){ destroyHls(); return; }
+    v.play().catch(()=>{});
+    onSuccess();
+  });
+  hlsInstance.on(Hls.Events.ERROR, (_, data)=>{
+    if(_pv !== ver) return;
+    if(data.fatal){ destroyHls(); onFail('hlsjs:' + data.type); }
+  });
+}
+
+/* ═══════════════════════ EXTERNAL PLAYERS ═══════════════════════ */
+function openExternal(app){
+  if(!curCh) return;
+  const url = curCh.url, enc = encodeURIComponent(url);
+  const schemes = {
+    vlc:       'vlc://' + url.replace(/^https?:\/\//,''),
+    infuse:    'infuse://x-callback-url/play?url=' + enc,
+    outplayer: 'outplayer://' + url,
+  };
+  window.location.href = schemes[app] || schemes.vlc;
+}
+function copyStreamUrl(){
+  if(!curCh) return;
+  navigator.clipboard?.writeText(curCh.url)
+    .then(()=>toast2('📋 URL kopyalandı'))
+    .catch(()=>prompt('Stream URL:', curCh.url));
+}
+function showExtPrompt(){
+  const el=$('ext-prompt'); if(el) el.style.display='flex';
+}
+function hideExtPrompt(){
+  const el=$('ext-prompt'); if(el) el.style.display='none';
+}
+function retryPlay(){
+  hideExtPrompt();
+  if(curCh) playCh(curCh.uid);
+}
+
+/* ═══════════════════════ URL CANDIDATES ═══════════════════════ */
 let _pv = 0;
 const _urlCache = {};
-
-function urlCandidates(url){
-  if(!url) return [];
-  const cached = _urlCache[url];
-  const base = buildCandidates(url);
-  let candidates;
-  if(proxyUrl){
-    const proxied = base.map(u => proxyStreamUrl(u));
-    candidates = [...proxied, ...base];
-  } else {
-    candidates = base;
-  }
-  if(cached){
-    candidates = [cached, ...candidates.filter(u => u !== cached)];
-  }
-  return candidates;
-}
 
 function cleanUrl(u){
   return u.replace(/:443([/?#])/g,'$1').replace(/:443$/,'')
           .replace(/:80([/?#])/g,'$1').replace(/:80$/,'');
 }
-
-function buildCandidates(url){
-  const clean = cleanUrl(url);
+function buildDirectCandidates(url){
+  const clean  = cleanUrl(url);
   const isHttp = url.startsWith('http://');
   if(!isHttp){
-    const variants = clean !== url ? [clean, url] : [url];
-    if(/\.m3u8(\?|$)/i.test(url)) return variants;
+    const vs = clean !== url ? [clean,url] : [url];
+    if(/\.m3u8(\?|$)/i.test(url)) return vs;
     if(/\.(ts|mpeg|mpg)(\?|$)/i.test(url)){
-      const m = clean.replace(/\.(ts|mpeg|mpg)(\?.*)?$/i,'.m3u8$2');
-      return [m, ...variants];
+      return [clean.replace(/\.(ts|mpeg|mpg)(\?.*)?$/i,'.m3u8$2'), ...vs];
     }
-    return [...variants, clean+'.m3u8', url+'.m3u8'];
+    return [...vs, clean+'.m3u8'];
   }
   const https = cleanUrl(url.replace(/^http:\/\//,'https://'));
-  const httpsRaw = url.replace(/^http:\/\//,'https://');
-  if(/\.m3u8(\?|$)/i.test(url)) return [https, httpsRaw, url];
+  const httpsR = url.replace(/^http:\/\//,'https://');
+  if(/\.m3u8(\?|$)/i.test(url)) return [https, httpsR, url];
   if(/\.(ts|mpeg|mpg)(\?|$)/i.test(url)){
-    const m3u8 = https.replace(/\.(ts|mpeg|mpg)(\?.*)?$/i,'.m3u8$2');
-    return [m3u8, https, httpsRaw, url];
+    return [https.replace(/\.(ts|mpeg|mpg)(\?.*)?$/i,'.m3u8$2'), https, httpsR, url];
   }
-  return [https, https+'.m3u8', httpsRaw, url];
+  return [https, https+'.m3u8', httpsR, url];
+}
+function urlCandidates(url){
+  if(!url) return [];
+  const swUrl   = buildSwUrl(url);          // SW proxy first — handles HTTP, CORS, segment rewrite
+  const directs = buildDirectCandidates(url);
+  const all     = [swUrl, ...directs];
+  // Deduplicate
+  const seen = new Set();
+  const deduped = all.filter(u=>{ if(seen.has(u)) return false; seen.add(u); return true; });
+  // Known-working URL goes first
+  const cached = _urlCache[url];
+  if(cached && deduped[0] !== cached){
+    return [cached, ...deduped.filter(u=>u!==cached)];
+  }
+  return deduped;
 }
 
+/* ═══════════════════════ STREAM PLAYBACK ═══════════════════════ */
 function playCh(uid){
   const channels = getChannels();
   const ch = channels.find(c=>c.uid===uid);
   if(!ch) return;
   _pv++;
   const ver = _pv;
-  curCh = ch;
+  curCh  = ch;
   curIdx = filtered.findIndex(c=>c.uid===uid);
   if(curIdx===-1) curIdx = channels.indexOf(ch);
+
   const v = $('vid');
-  v.oncanplay = null; v.onerror = null;
+  v.oncanplay=v.onerror=v.onwaiting=v.onplaying=null;
   clearTimeout(v._bufTimer); clearTimeout(v._toTimer);
-  v.pause();
-  v.src = '';
-  v.load();
+  destroyHls();
+  v.pause(); v.src=''; v.load();
+
   $('mpname').textContent = ch.name;
   $('mpgrp').textContent  = ch.group;
   $('mplayer').classList.add('open');
   $('pdot').classList.add('v');
+  $('ext-btn').style.display = 'flex';
+  hideExtPrompt();
   showBuf(true);
-  const cands = urlCandidates(ch.url);
-  let attempt = 0;
+
+  const cands  = urlCandidates(ch.url);
+  let attempt  = 0;
+  let hlsFailed = false; // avoid hls.js loop
+
+  function onSuccess(){
+    if(_pv !== ver) return;
+    clearTimeout(v._toTimer);
+    showBuf(false);
+    // Cache the working SW-proxy entry (original url as key)
+    const winnerUrl = cands[attempt-1];
+    if(winnerUrl && !_urlCache[ch.url]) _urlCache[ch.url] = winnerUrl;
+  }
+
+  function onFail(reason){
+    if(_pv !== ver) return;
+    clearTimeout(v._toTimer); clearTimeout(v._bufTimer);
+    destroyHls();
+    v.oncanplay=v.onerror=null;
+    v.pause(); v.src=''; v.load();
+    if(attempt >= cands.length){
+      showBuf(false);
+      showExtPrompt();
+      toast2('⚠️ Kanal açılamadı — dış oynatıcı dene', 4000);
+      return;
+    }
+    next();
+  }
 
   function next(){
     if(_pv !== ver) return;
-    if(attempt >= cands.length){
-      showBuf(false);
-      if(ch.url.startsWith('http://'))
-        toast2('⚠️ HTTP stream — iOS yalnızca HTTPS oynatır', 5000);
-      else
-        toast2('Bu kanal şu an açılamıyor');
+    if(attempt >= cands.length){ onFail('exhausted'); return; }
+    const url = cands[attempt++];
+    const isSwUrl = url.startsWith('./sw-hls');
+
+    destroyHls();
+    v.oncanplay=v.onerror=null;
+    clearTimeout(v._toTimer);
+    v._toTimer = setTimeout(()=>{ if(_pv===ver) onFail('timeout'); }, attempt===1 ? 22000 : 13000);
+
+    // Use hls.js for direct HTTPS M3U8 (not SW, not already-failed-hls)
+    if(!isSwUrl && !hlsFailed && canUseHlsJs() && isLikelyHLS(url)){
+      playWithHlsJs(url, ver, onSuccess, (reason)=>{
+        hlsFailed = true; // only try hls.js once
+        onFail(reason);
+      });
       return;
     }
-    const url = cands[attempt++];
-    v.oncanplay = null; v.onerror = null;
-    clearTimeout(v._toTimer);
-    const timeoutMs = attempt === 1 ? 20000 : 10000;
-    v._toTimer = setTimeout(()=>{
-      if(_pv !== ver) return;
-      v.oncanplay = null; v.onerror = null;
-      v.pause(); v.src = ''; v.load();
-      next();
-    }, timeoutMs);
 
+    // Native <video>
     v.onerror = ()=>{
       if(_pv !== ver) return;
       clearTimeout(v._toTimer);
-      v.oncanplay = null; v.onerror = null;
-      v.pause(); v.src = ''; v.load();
-      if (v.error && v.error.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED) {
-        showBuf(false);
-        toast2('📵 iOS bu akış formatını desteklemiyor (genelde .ts). HLS (.m3u8) gerekiyor.', 5000);
-        return;
-      }
-      next();
+      v.oncanplay=v.onerror=null;
+      v.pause(); v.src=''; v.load();
+      onFail('nativeerr:' + (v.error?.code||'?'));
     };
-
-    v.oncanplay = ()=>{
-      if(_pv !== ver) return;
-      clearTimeout(v._toTimer);
-      _urlCache[ch.url] = url;
-      showBuf(false);
-    };
-
+    v.oncanplay = ()=>{ if(_pv===ver){ clearTimeout(v._toTimer); onSuccess(); } };
     v.src = url;
     const p = v.play();
     if(p) p.catch(err=>{
-      if(_pv !== ver || err.name === 'AbortError') return;
-      if(err.name === 'NotAllowedError'){ showBuf(false); toast2('▶ Play tuşuna bas'); return; }
+      if(_pv!==ver || err.name==='AbortError') return;
+      if(err.name==='NotAllowedError'){ showBuf(false); toast2('▶ Play tuşuna bas'); return; }
       clearTimeout(v._toTimer);
-      v.oncanplay = null; v.onerror = null;
-      v.pause(); v.src = ''; v.load();
-      next();
+      v.oncanplay=v.onerror=null;
+      v.pause(); v.src=''; v.load();
+      onFail('play:'+err.name);
     });
   }
 
-  next();
-
   v.onwaiting = ()=>{
-    if(_pv !== ver) return;
-    showBuf(true);
+    if(_pv!==ver) return; showBuf(true);
     clearTimeout(v._bufTimer);
     v._bufTimer = setTimeout(()=>{
-      if(_pv !== ver) return;
-      if(v.readyState < 3){
-        v.oncanplay = null; v.onerror = null;
-        v.pause(); v.src = ''; v.load();
-        next();
-      }
+      if(_pv!==ver) return;
+      if(v.readyState < 3) onFail('bufTimeout');
     }, 20000);
   };
   v.onplaying = ()=>{ if(_pv===ver){ showBuf(false); clearTimeout(v._bufTimer); } };
 
+  next();
+
+  // Highlight in list
   document.querySelectorAll('.chi.now').forEach(el=>el.classList.remove('now'));
   const el = document.querySelector(`.chi[data-uid="${uid}"]`);
   if(el){
     el.classList.add('now');
-    if(!el.querySelector('.pbar')){
-      const pb = document.createElement('div'); pb.className='pbar'; el.prepend(pb);
-    }
+    if(!el.querySelector('.pbar')){ const pb=document.createElement('div'); pb.className='pbar'; el.prepend(pb); }
     el.scrollIntoView({block:'nearest', behavior:'smooth'});
   }
 }
 
 function showBuf(on){
-  let b = $('buf-overlay');
+  let b=$('buf-overlay');
   if(!b){
-    b = document.createElement('div'); b.id='buf-overlay';
+    b=document.createElement('div'); b.id='buf-overlay';
     b.style.cssText='position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.45);z-index:10;border-radius:12px;pointer-events:none;';
     b.innerHTML='<div style="width:32px;height:32px;border:3px solid rgba(255,255,255,.2);border-top-color:var(--acc);border-radius:50%;animation:spin .8s linear infinite"></div>';
-    const wrap = qs('.mpwrap'); if(wrap) wrap.appendChild(b);
+    const wrap=qs('.mpwrap'); if(wrap) wrap.appendChild(b);
     if(!document.getElementById('spin-style')){
       const s=document.createElement('style');s.id='spin-style';
       s.textContent='@keyframes spin{to{transform:rotate(360deg)}}';
       document.head.appendChild(s);
     }
   }
-  b.style.display = on ? 'flex' : 'none';
+  b.style.display=on?'flex':'none';
 }
 
 function stopPlayer(){
   const v=$('vid');
-  v.oncanplay=null; v.onerror=null; v.onwaiting=null; v.onplaying=null;
+  v.oncanplay=v.onerror=v.onwaiting=v.onplaying=null;
   clearTimeout(v._toTimer); clearTimeout(v._bufTimer);
+  destroyHls();
   v.pause(); v.src=''; v.load();
-  showBuf(false);
+  showBuf(false); hideExtPrompt();
   $('mplayer').classList.remove('open');
   $('pdot').classList.remove('v');
+  $('ext-btn').style.display='none';
   curCh=null; curIdx=-1; _pv++;
   document.querySelectorAll('.chi.now').forEach(el=>{
     el.classList.remove('now'); el.querySelector('.pbar')?.remove();
@@ -1380,12 +1474,11 @@ function stopPlayer(){
 
 function togglePlay(){
   const v=$('vid');
-  if(v.paused){ v.play().catch(()=>{}); }
-  else { v.pause(); }
+  v.paused ? v.play().catch(()=>{}) : v.pause();
 }
 
 function skipCh(dir){
-  const list=filtered.length ? filtered : getChannels();
+  const list=filtered.length?filtered:getChannels();
   if(!list.length) return;
   let idx=curIdx+dir;
   if(idx<0) idx=list.length-1;
@@ -1394,16 +1487,10 @@ function skipCh(dir){
 }
 
 /* video time update */
-(()=>{
-  const v=$('vid');
-  v.addEventListener('timeupdate', updateSeek);
-})();
+(()=>{ $('vid').addEventListener('timeupdate', updateSeek); })();
 function updateSeek(){
   const v=$('vid');
-  if(!v.duration || !isFinite(v.duration)){
-    $('mptime').textContent='';
-    return;
-  }
+  if(!v.duration||!isFinite(v.duration)){ $('mptime').textContent=''; return; }
   const r=v.currentTime/v.duration;
   $('mpprog').style.width=(r*100).toFixed(2)+'%';
   if(v.buffered.length){
@@ -1417,23 +1504,17 @@ function seekStart(e){
   const mv=ev=>{ if(seeking) seekDo(ev); };
   const up=()=>{
     seeking=false;
-    document.removeEventListener('mousemove',mv);
-    document.removeEventListener('mouseup',up);
-    document.removeEventListener('touchmove',mv);
-    document.removeEventListener('touchend',up);
+    document.removeEventListener('mousemove',mv); document.removeEventListener('mouseup',up);
+    document.removeEventListener('touchmove',mv); document.removeEventListener('touchend',up);
   };
-  document.addEventListener('mousemove',mv,{passive:false});
-  document.addEventListener('mouseup',up);
-  document.addEventListener('touchmove',mv,{passive:false});
-  document.addEventListener('touchend',up);
+  document.addEventListener('mousemove',mv,{passive:false}); document.addEventListener('mouseup',up);
+  document.addEventListener('touchmove',mv,{passive:false}); document.addEventListener('touchend',up);
 }
 function seekDo(e){
-  const track=$('mptrack');
-  const rect=track.getBoundingClientRect();
-  const cx=e.touches ? e.touches[0].clientX : e.clientX;
-  const ratio=Math.max(0, Math.min(1,(cx-rect.left)/rect.width));
-  const v=$('vid');
-  if(isFinite(v.duration)) v.currentTime=ratio*v.duration;
+  const track=$('mptrack'), rect=track.getBoundingClientRect();
+  const cx=e.touches?e.touches[0].clientX:e.clientX;
+  const ratio=Math.max(0,Math.min(1,(cx-rect.left)/rect.width));
+  const v=$('vid'); if(isFinite(v.duration)) v.currentTime=ratio*v.duration;
 }
 
 /* ═══════════════════════ FAVORITES ═══════════════════════ */
