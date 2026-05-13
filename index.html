@@ -1162,16 +1162,18 @@ async function testProxy(){
   const statusEl = $('proxy-status');
   statusEl.textContent = '⏳ Test ediliyor…';
   try{
-    const r = await fetch(url + '/', { signal: AbortSignal.timeout(8000) });
+    // Test için /proxy?url=... endpointini kullanalım, çünkü cloudflare tunnel'de / yok
+    const testUrl = url + '/proxy?url=' + encodeURIComponent('https://www.google.com');
+    const r = await fetch(testUrl, { signal: AbortSignal.timeout(8000) });
     const t = await r.text();
-    if(r.ok && t.includes('GlyphTV')){
+    if(r.ok && t.includes('Google')){
       proxyUrl = url;
       try{ localStorage.setItem('otv_proxy', proxyUrl); }catch(e){}
       statusEl.textContent = '✅ Proxy çalışıyor!';
       toast2('✅ Proxy bağlantısı başarılı');
       checkDebugBtn();
     } else {
-      statusEl.textContent = '❌ Proxy yanıt verdi ama GlyphTV Worker değil';
+      statusEl.textContent = '❌ Proxy yanıt verdi ama Google içeriği alınamadı';
     }
   }catch(e){ statusEl.textContent = '❌ Bağlanamadı — URL\'yi kontrol et'; }
 }
