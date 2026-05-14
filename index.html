@@ -1162,18 +1162,16 @@ async function testProxy(){
   const statusEl = $('proxy-status');
   statusEl.textContent = '⏳ Test ediliyor…';
   try{
-    // Test için /proxy?url=... endpointini kullanalım, çünkü cloudflare tunnel'de / yok
-    const testUrl = url + '/proxy?url=' + encodeURIComponent('https://www.google.com');
-    const r = await fetch(testUrl, { signal: AbortSignal.timeout(8000) });
+    const r = await fetch(url + '/', { signal: AbortSignal.timeout(8000) });
     const t = await r.text();
-    if(r.ok && t.includes('Google')){
+    if(r.ok && t.includes('GlyphTV')){
       proxyUrl = url;
       try{ localStorage.setItem('otv_proxy', proxyUrl); }catch(e){}
       statusEl.textContent = '✅ Proxy çalışıyor!';
       toast2('✅ Proxy bağlantısı başarılı');
       checkDebugBtn();
     } else {
-      statusEl.textContent = '❌ Proxy yanıt verdi ama Google içeriği alınamadı';
+      statusEl.textContent = '❌ Proxy yanıt verdi ama GlyphTV Worker değil';
     }
   }catch(e){ statusEl.textContent = '❌ Bağlanamadı — URL\'yi kontrol et'; }
 }
@@ -1310,15 +1308,32 @@ function buildDirectCandidates(url){
   }
   return [https, https+'.m3u8', httpsR, url];
 }
+function buildVpsProxyUrl(streamUrl){
+  if(!proxyUrl) return null;
+  let p = proxyUrl + '/proxy?url=' + encodeURIComponent(streamUrl);
+  if(panelReferer) p += '&referer=' + encodeURIComponent(panelReferer);
+  return p;
+}
+
 function urlCandidates(url){
   if(!url) return [];
-  const swUrl   = buildSwUrl(url);          // SW proxy first — handles HTTP, CORS, segment rewrite
-  const directs = buildDirectCandidates(url);
-  const all     = [swUrl, ...directs];
+  const all = [];
+
+  // 1. VPS proxy — dogrudan HTTPS video src olarak ver (en guvenilir)
+  const vpsUrl = buildVpsProxyUrl(url);
+  if(vpsUrl) all.push(vpsUrl);
+
+  // 2. SW proxy (VPS yoksa)
+  if(!proxyUrl) all.push(buildSwUrl(url));
+
+  // 3. Dogrudan HTTPS adaylar
+  all.push(...buildDirectCandidates(url));
+
   // Deduplicate
   const seen = new Set();
   const deduped = all.filter(u=>{ if(seen.has(u)) return false; seen.add(u); return true; });
-  // Known-working URL goes first
+
+  // Daha once calisan URL'i one al
   const cached = _urlCache[url];
   if(cached && deduped[0] !== cached){
     return [cached, ...deduped.filter(u=>u!==cached)];
