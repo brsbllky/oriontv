@@ -351,44 +351,6 @@ html,body{height:100%;width:100%;overflow:hidden;
   max-width:88vw;text-align:center;}
 #toast.on{opacity:1;transform:translateX(-50%) translateY(0) scale(1);}
 
-/* ─── EXTERNAL PLAYER BUTTON ─── */
-.ext-btn{display:none;align-items:center;gap:5px;
-  background:none;border:none;color:var(--t2);cursor:pointer;
-  font-size:11px;font-weight:600;padding:5px 6px;flex-shrink:0;
-  border-radius:8px;border:1px solid rgba(255,255,255,.1);}
-.ext-btn svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;
-  stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;}
-.ext-btn:active{opacity:.65;}
-
-/* ─── EXT PLAYER PROMPT (failure overlay) ─── */
-#ext-prompt{display:none;position:absolute;inset:0;z-index:20;
-  align-items:center;justify-content:center;flex-direction:column;gap:10px;
-  background:rgba(7,0,26,.88);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
-  border-radius:12px;padding:16px;}
-#ext-prompt .ep-title{font-size:13px;font-weight:700;color:var(--t1);text-align:center;}
-#ext-prompt .ep-sub{font-size:10px;color:var(--t3);text-align:center;line-height:1.5;margin-top:-4px;}
-.ep-btns{display:flex;gap:7px;flex-wrap:wrap;justify-content:center;}
-.ep-btn{display:flex;align-items:center;gap:6px;padding:9px 14px;
-  border-radius:11px;border:none;cursor:pointer;font-size:12px;font-weight:700;
-  color:#fff;text-decoration:none;}
-.ep-vlc{background:linear-gradient(135deg,#e66000,#ff8c00);}
-.ep-infuse{background:linear-gradient(135deg,#6e2cf4,#9b59f5);}
-.ep-out{background:linear-gradient(135deg,#0068d0,#0a84ff);}
-.ep-copy{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);font-size:11px;}
-.ep-retry{background:rgba(0,200,255,.12);border:1px solid rgba(0,200,255,.3);
-  color:var(--acc);font-size:11px;}
-</style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.13/hls.min.js" crossorigin="anonymous"></script>
-</head>
-<body>
-<div id="mesh">
-  <div class="blob b1"></div>
-  <div class="blob b2"></div>
-  <div class="blob b3"></div>
-</div>
-
-<div id="app">
-
   <!-- TOPBAR -->
   <div id="topbar">
     <div class="logo-img"><img src="app_icon.png" alt="O"></div>
@@ -1129,76 +1091,6 @@ function doFilter(){
   renderLive();
 }
 
-/* ═══════════════════════ PROXY + REFERER ═══════════════════════ */
-let proxyUrl = '';
-let panelReferer = '';
-
-function loadProxy(){
-  try{ proxyUrl = localStorage.getItem('otv_proxy') || ''; }catch(e){}
-  const el = $('proxy-url');
-  if(el) el.value = proxyUrl;
-}
-function saveProxy(){
-  proxyUrl = ($('proxy-url')?.value || '').trim().replace(/\/+$/,'');
-  try{ localStorage.setItem('otv_proxy', proxyUrl); }catch(e){}
-  $('proxy-status').textContent = proxyUrl ? '✅ Proxy aktif' : '';
-  checkDebugBtn();
-}
-function loadPanelReferer(){
-  try{ panelReferer = localStorage.getItem('otv_referer') || ''; }catch(e){}
-  const el = $('panel-referer');
-  if(el) el.value = panelReferer;
-}
-function savePanelReferer(){
-  panelReferer = ($('panel-referer')?.value || '').trim();
-  try{ localStorage.setItem('otv_referer', panelReferer); }catch(e){}
-}
-function checkDebugBtn(){
-  $('debug-btn').style.display = (proxyUrl && getChannels().length) ? 'block' : 'none';
-}
-async function testProxy(){
-  const url = ($('proxy-url')?.value || '').trim().replace(/\/+$/,'');
-  if(!url){ toast2('⚠️ Önce Worker URL gir'); return; }
-  const statusEl = $('proxy-status');
-  statusEl.textContent = '⏳ Test ediliyor…';
-  try{
-    const r = await fetch(url + '/', { signal: AbortSignal.timeout(8000) });
-    const t = await r.text();
-    if(r.ok && t.includes('GlyphTV')){
-      proxyUrl = url;
-      try{ localStorage.setItem('otv_proxy', proxyUrl); }catch(e){}
-      statusEl.textContent = '✅ Proxy çalışıyor!';
-      toast2('✅ Proxy bağlantısı başarılı');
-      checkDebugBtn();
-    } else {
-      statusEl.textContent = '❌ Proxy yanıt verdi ama GlyphTV Worker değil';
-    }
-  }catch(e){ statusEl.textContent = '❌ Bağlanamadı — URL\'yi kontrol et'; }
-}
-async function debugStream(){
-  const chs = getChannels();
-  if(!chs.length){ toast2('Önce bir kaynak yükle'); return; }
-  if(!proxyUrl){ toast2('Proxy URL gerekli'); return; }
-  const ch = chs[0];
-  let debugUrl = proxyUrl + '/debug?url=' + encodeURIComponent(ch.url);
-  if(panelReferer) debugUrl += '&referer=' + encodeURIComponent(panelReferer);
-  const out = $('debug-out');
-  out.style.display = 'block';
-  out.textContent = '⏳ Sunucu test ediliyor...\nURL: ' + ch.url + '\n';
-  try{
-    const r = await fetch(debugUrl, { signal: AbortSignal.timeout(20000) });
-    const data = await r.json();
-    let txt = '📡 Kanal: ' + ch.name + '\n🔗 URL: ' + ch.url + '\n\n';
-    data.forEach(d => {
-      txt += `── ${d.ua} ──\n`;
-      if(d.error){ txt += `❌ Hata: ${d.error}\n\n`; return; }
-      txt += `Status: ${d.status}\nContent-Type: ${d.contentType||'?'}\nM3U8: ${d.isM3U8?'✅':'❌'}\nÇalışıyor: ${d.isWorking?'✅':'❌'}\nİçerik: ${d.bodyPreview||'(boş)'}\n\n`;
-    });
-    const working = data.find(d => d.isWorking && !d.error);
-    txt += working ? `\n✅ ${working.ua} ile çalışıyor!` : '\n❌ Hiçbir UA ile çalışmıyor';
-    out.textContent = txt;
-  }catch(e){ out.textContent = '❌ Debug başarısız: ' + e.message; }
-}
 
 /* ═══════════════════════ SW HLS PROXY URL BUILDER ═══════════════════════ */
 function buildSwUrl(streamUrl){
@@ -1251,34 +1143,6 @@ function playWithHlsJs(streamUrl, ver, onSuccess, onFail){
     if(_pv !== ver) return;
     if(data.fatal){ destroyHls(); onFail('hlsjs:' + data.type); }
   });
-}
-
-/* ═══════════════════════ EXTERNAL PLAYERS ═══════════════════════ */
-function openExternal(app){
-  if(!curCh) return;
-  const url = curCh.url, enc = encodeURIComponent(url);
-  const schemes = {
-    vlc:       'vlc://' + url.replace(/^https?:\/\//,''),
-    infuse:    'infuse://x-callback-url/play?url=' + enc,
-    outplayer: 'outplayer://' + url,
-  };
-  window.location.href = schemes[app] || schemes.vlc;
-}
-function copyStreamUrl(){
-  if(!curCh) return;
-  navigator.clipboard?.writeText(curCh.url)
-    .then(()=>toast2('📋 URL kopyalandı'))
-    .catch(()=>prompt('Stream URL:', curCh.url));
-}
-function showExtPrompt(){
-  const el=$('ext-prompt'); if(el) el.style.display='flex';
-}
-function hideExtPrompt(){
-  const el=$('ext-prompt'); if(el) el.style.display='none';
-}
-function retryPlay(){
-  hideExtPrompt();
-  if(curCh) playCh(curCh.uid);
 }
 
 /* ═══════════════════════ URL CANDIDATES ═══════════════════════ */
