@@ -351,6 +351,20 @@ html,body{height:100%;width:100%;overflow:hidden;
   max-width:88vw;text-align:center;}
 #toast.on{opacity:1;transform:translateX(-50%) translateY(0) scale(1);}
 
+/* ─── EXTERNAL PLAYER BUTTON ─── */
+
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.13/hls.min.js" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="mesh">
+  <div class="blob b1"></div>
+  <div class="blob b2"></div>
+  <div class="blob b3"></div>
+</div>
+
+<div id="app">
+
   <!-- TOPBAR -->
   <div id="topbar">
     <div class="logo-img"><img src="app_icon.png" alt="O"></div>
@@ -382,10 +396,6 @@ html,body{height:100%;width:100%;overflow:hidden;
             <div class="mpname" id="mpname">—</div>
             <div class="mpgrp" id="mpgrp">—</div>
           </div>
-          <button class="ext-btn" id="ext-btn" onclick="showExtPrompt()">
-            <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15,3 21,3 21,9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-            Dış
-          </button>
           <button class="mpc" onclick="skipCh(-1)" title="Önceki kanal">
             <svg viewBox="0 0 24 24"><polygon points="19,20 9,12 19,4"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
           </button>
@@ -402,20 +412,7 @@ html,body{height:100%;width:100%;overflow:hidden;
           </div>
         </div>
         <div class="mptime" id="mptime" style="display:none"></div>
-        <!-- External player prompt -->
-        <div id="ext-prompt">
-          <div class="ep-title">⚠️ Kanal açılamadı</div>
-          <div class="ep-sub">Bu kanal tarayıcıda oynatılamıyor.<br>Bir dış oynatıcıya yönlendir:</div>
-          <div class="ep-btns">
-            <button class="ep-btn ep-vlc" onclick="openExternal('vlc')">📺 VLC</button>
-            <button class="ep-btn ep-infuse" onclick="openExternal('infuse')">🎬 Infuse</button>
-            <button class="ep-btn ep-out" onclick="openExternal('outplayer')">▶ Outplayer</button>
-          </div>
-          <div class="ep-btns" style="margin-top:-2px">
-            <button class="ep-btn ep-copy" onclick="copyStreamUrl()">📋 URL Kopyala</button>
-            <button class="ep-btn ep-retry" onclick="retryPlay()">🔄 Tekrar Dene</button>
-          </div>
-        </div>
+
       </div>
     </div>
   </div>
@@ -1091,6 +1088,76 @@ function doFilter(){
   renderLive();
 }
 
+/* ═══════════════════════ PROXY + REFERER ═══════════════════════ */
+let proxyUrl = '';
+let panelReferer = '';
+
+function loadProxy(){
+  try{ proxyUrl = localStorage.getItem('otv_proxy') || ''; }catch(e){}
+  const el = $('proxy-url');
+  if(el) el.value = proxyUrl;
+}
+function saveProxy(){
+  proxyUrl = ($('proxy-url')?.value || '').trim().replace(/\/+$/,'');
+  try{ localStorage.setItem('otv_proxy', proxyUrl); }catch(e){}
+  $('proxy-status').textContent = proxyUrl ? '✅ Proxy aktif' : '';
+  checkDebugBtn();
+}
+function loadPanelReferer(){
+  try{ panelReferer = localStorage.getItem('otv_referer') || ''; }catch(e){}
+  const el = $('panel-referer');
+  if(el) el.value = panelReferer;
+}
+function savePanelReferer(){
+  panelReferer = ($('panel-referer')?.value || '').trim();
+  try{ localStorage.setItem('otv_referer', panelReferer); }catch(e){}
+}
+function checkDebugBtn(){
+  $('debug-btn').style.display = (proxyUrl && getChannels().length) ? 'block' : 'none';
+}
+async function testProxy(){
+  const url = ($('proxy-url')?.value || '').trim().replace(/\/+$/,'');
+  if(!url){ toast2('⚠️ Önce Worker URL gir'); return; }
+  const statusEl = $('proxy-status');
+  statusEl.textContent = '⏳ Test ediliyor…';
+  try{
+    const r = await fetch(url + '/', { signal: AbortSignal.timeout(8000) });
+    const t = await r.text();
+    if(r.ok && t.includes('GlyphTV')){
+      proxyUrl = url;
+      try{ localStorage.setItem('otv_proxy', proxyUrl); }catch(e){}
+      statusEl.textContent = '✅ Proxy çalışıyor!';
+      toast2('✅ Proxy bağlantısı başarılı');
+      checkDebugBtn();
+    } else {
+      statusEl.textContent = '❌ Proxy yanıt verdi ama GlyphTV Worker değil';
+    }
+  }catch(e){ statusEl.textContent = '❌ Bağlanamadı — URL\'yi kontrol et'; }
+}
+async function debugStream(){
+  const chs = getChannels();
+  if(!chs.length){ toast2('Önce bir kaynak yükle'); return; }
+  if(!proxyUrl){ toast2('Proxy URL gerekli'); return; }
+  const ch = chs[0];
+  let debugUrl = proxyUrl + '/debug?url=' + encodeURIComponent(ch.url);
+  if(panelReferer) debugUrl += '&referer=' + encodeURIComponent(panelReferer);
+  const out = $('debug-out');
+  out.style.display = 'block';
+  out.textContent = '⏳ Sunucu test ediliyor...\nURL: ' + ch.url + '\n';
+  try{
+    const r = await fetch(debugUrl, { signal: AbortSignal.timeout(20000) });
+    const data = await r.json();
+    let txt = '📡 Kanal: ' + ch.name + '\n🔗 URL: ' + ch.url + '\n\n';
+    data.forEach(d => {
+      txt += `── ${d.ua} ──\n`;
+      if(d.error){ txt += `❌ Hata: ${d.error}\n\n`; return; }
+      txt += `Status: ${d.status}\nContent-Type: ${d.contentType||'?'}\nM3U8: ${d.isM3U8?'✅':'❌'}\nÇalışıyor: ${d.isWorking?'✅':'❌'}\nİçerik: ${d.bodyPreview||'(boş)'}\n\n`;
+    });
+    const working = data.find(d => d.isWorking && !d.error);
+    txt += working ? `\n✅ ${working.ua} ile çalışıyor!` : '\n❌ Hiçbir UA ile çalışmıyor';
+    out.textContent = txt;
+  }catch(e){ out.textContent = '❌ Debug başarısız: ' + e.message; }
+}
 
 /* ═══════════════════════ SW HLS PROXY URL BUILDER ═══════════════════════ */
 function buildSwUrl(streamUrl){
@@ -1144,6 +1211,9 @@ function playWithHlsJs(streamUrl, ver, onSuccess, onFail){
     if(data.fatal){ destroyHls(); onFail('hlsjs:' + data.type); }
   });
 }
+
+/* ═══════════════════════ EXTERNAL PLAYERS ═══════════════════════ */
+
 
 /* ═══════════════════════ URL CANDIDATES ═══════════════════════ */
 let _pv = 0;
@@ -1226,8 +1296,8 @@ function playCh(uid){
   $('mpgrp').textContent  = ch.group;
   $('mplayer').classList.add('open');
   $('pdot').classList.add('v');
-  $('ext-btn').style.display = 'flex';
-  hideExtPrompt();
+  
+  
   showBuf(true);
 
   const cands  = urlCandidates(ch.url);
@@ -1251,8 +1321,7 @@ function playCh(uid){
     v.pause(); v.src=''; v.load();
     if(attempt >= cands.length){
       showBuf(false);
-      showExtPrompt();
-      toast2('⚠️ Kanal açılamadı — dış oynatıcı dene', 4000);
+      toast2('⚠️ Kanal açılamıyor', 3000);
       return;
     }
     next();
@@ -1343,10 +1412,10 @@ function stopPlayer(){
   clearTimeout(v._toTimer); clearTimeout(v._bufTimer);
   destroyHls();
   v.pause(); v.src=''; v.load();
-  showBuf(false); hideExtPrompt();
+  showBuf(false); 
   $('mplayer').classList.remove('open');
   $('pdot').classList.remove('v');
-  $('ext-btn').style.display='none';
+  
   curCh=null; curIdx=-1; _pv++;
   document.querySelectorAll('.chi.now').forEach(el=>{
     el.classList.remove('now'); el.querySelector('.pbar')?.remove();
