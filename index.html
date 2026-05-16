@@ -351,7 +351,7 @@ html,body{height:100%;width:100%;overflow:hidden;
   max-width:88vw;text-align:center;}
 #toast.on{opacity:1;transform:translateX(-50%) translateY(0) scale(1);}
 
-/* ─── EXTERNAL PLAYER BUTTON ─── */
+
 
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.13/hls.min.js" crossorigin="anonymous"></script>
@@ -1214,7 +1214,6 @@ function playWithHlsJs(streamUrl, ver, onSuccess, onFail){
 
 /* ═══════════════════════ EXTERNAL PLAYERS ═══════════════════════ */
 
-
 /* ═══════════════════════ URL CANDIDATES ═══════════════════════ */
 let _pv = 0;
 const _urlCache = {};
@@ -1247,6 +1246,19 @@ function buildVpsProxyUrl(streamUrl){
   let p = proxyUrl + '/proxy?url=' + encodeURIComponent(streamUrl);
   if(panelReferer) p += '&referer=' + encodeURIComponent(panelReferer);
   return p;
+}
+
+/* VPS HLS transmux endpoint — FFmpeg ile RAW/UHD kanalları HLS'e çevirir */
+async function getHlsTransmuxUrl(streamUrl){
+  if(!proxyUrl) return null;
+  try{
+    let api = proxyUrl + '/hls?url=' + encodeURIComponent(streamUrl);
+    if(panelReferer) api += '&referer=' + encodeURIComponent(panelReferer);
+    const r = await fetch(api, { signal: AbortSignal.timeout(15000) });
+    if(!r.ok) return null;
+    const data = await r.json();
+    return data.url || null;
+  }catch(e){ return null; }
 }
 
 function urlCandidates(url){
@@ -1301,8 +1313,9 @@ function playCh(uid){
   showBuf(true);
 
   const cands  = urlCandidates(ch.url);
-  let attempt  = 0;
-  let hlsFailed = false; // avoid hls.js loop
+  let attempt     = 0;
+  let hlsFailed   = false; // avoid hls.js loop
+  let _hlsAttempted = false; // avoid FFmpeg transmux loop
 
   function onSuccess(){
     if(_pv !== ver) return;
@@ -1320,6 +1333,24 @@ function playCh(uid){
     v.oncanplay=v.onerror=null;
     v.pause(); v.src=''; v.load();
     if(attempt >= cands.length){
+      // Normal adaylar tükendi — FFmpeg HLS transmux dene
+      if(proxyUrl && !_hlsAttempted){
+        _hlsAttempted = true;
+        showBuf(true);
+        toast2('⏳ HLS dönüşümü deneniyor…', 2500);
+        getHlsTransmuxUrl(ch.url).then(hlsUrl => {
+          if(_pv !== ver) return;
+          if(hlsUrl){
+            cands.unshift(hlsUrl);
+            attempt = 0;
+            next();
+          } else {
+            showBuf(false);
+            toast2('⚠️ Kanal açılamıyor', 3000);
+          }
+        });
+        return;
+      }
       showBuf(false);
       toast2('⚠️ Kanal açılamıyor', 3000);
       return;
