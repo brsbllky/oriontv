@@ -352,31 +352,7 @@ html,body{height:100%;width:100%;overflow:hidden;
 #toast.on{opacity:1;transform:translateX(-50%) translateY(0) scale(1);}
 
 /* ─── EXTERNAL PLAYER BUTTON ─── */
-.ext-btn{display:none;align-items:center;gap:5px;
-  background:none;border:none;color:var(--t2);cursor:pointer;
-  font-size:11px;font-weight:600;padding:5px 6px;flex-shrink:0;
-  border-radius:8px;border:1px solid rgba(255,255,255,.1);}
-.ext-btn svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;
-  stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;}
-.ext-btn:active{opacity:.65;}
 
-/* ─── EXT PLAYER PROMPT (failure overlay) ─── */
-#ext-prompt{display:none;position:absolute;inset:0;z-index:20;
-  align-items:center;justify-content:center;flex-direction:column;gap:10px;
-  background:rgba(7,0,26,.88);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
-  border-radius:12px;padding:16px;}
-#ext-prompt .ep-title{font-size:13px;font-weight:700;color:var(--t1);text-align:center;}
-#ext-prompt .ep-sub{font-size:10px;color:var(--t3);text-align:center;line-height:1.5;margin-top:-4px;}
-.ep-btns{display:flex;gap:7px;flex-wrap:wrap;justify-content:center;}
-.ep-btn{display:flex;align-items:center;gap:6px;padding:9px 14px;
-  border-radius:11px;border:none;cursor:pointer;font-size:12px;font-weight:700;
-  color:#fff;text-decoration:none;}
-.ep-vlc{background:linear-gradient(135deg,#e66000,#ff8c00);}
-.ep-infuse{background:linear-gradient(135deg,#6e2cf4,#9b59f5);}
-.ep-out{background:linear-gradient(135deg,#0068d0,#0a84ff);}
-.ep-copy{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);font-size:11px;}
-.ep-retry{background:rgba(0,200,255,.12);border:1px solid rgba(0,200,255,.3);
-  color:var(--acc);font-size:11px;}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.13/hls.min.js" crossorigin="anonymous"></script>
 </head>
@@ -420,10 +396,6 @@ html,body{height:100%;width:100%;overflow:hidden;
             <div class="mpname" id="mpname">—</div>
             <div class="mpgrp" id="mpgrp">—</div>
           </div>
-          <button class="ext-btn" id="ext-btn" onclick="showExtPrompt()">
-            <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15,3 21,3 21,9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-            Dış
-          </button>
           <button class="mpc" onclick="skipCh(-1)" title="Önceki kanal">
             <svg viewBox="0 0 24 24"><polygon points="19,20 9,12 19,4"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
           </button>
@@ -440,20 +412,7 @@ html,body{height:100%;width:100%;overflow:hidden;
           </div>
         </div>
         <div class="mptime" id="mptime" style="display:none"></div>
-        <!-- External player prompt -->
-        <div id="ext-prompt">
-          <div class="ep-title">⚠️ Kanal açılamadı</div>
-          <div class="ep-sub">Bu kanal tarayıcıda oynatılamıyor.<br>Bir dış oynatıcıya yönlendir:</div>
-          <div class="ep-btns">
-            <button class="ep-btn ep-vlc" onclick="openExternal('vlc')">📺 VLC</button>
-            <button class="ep-btn ep-infuse" onclick="openExternal('infuse')">🎬 Infuse</button>
-            <button class="ep-btn ep-out" onclick="openExternal('outplayer')">▶ Outplayer</button>
-          </div>
-          <div class="ep-btns" style="margin-top:-2px">
-            <button class="ep-btn ep-copy" onclick="copyStreamUrl()">📋 URL Kopyala</button>
-            <button class="ep-btn ep-retry" onclick="retryPlay()">🔄 Tekrar Dene</button>
-          </div>
-        </div>
+
       </div>
     </div>
   </div>
@@ -1254,32 +1213,7 @@ function playWithHlsJs(streamUrl, ver, onSuccess, onFail){
 }
 
 /* ═══════════════════════ EXTERNAL PLAYERS ═══════════════════════ */
-function openExternal(app){
-  if(!curCh) return;
-  const url = curCh.url, enc = encodeURIComponent(url);
-  const schemes = {
-    vlc:       'vlc://' + url.replace(/^https?:\/\//,''),
-    infuse:    'infuse://x-callback-url/play?url=' + enc,
-    outplayer: 'outplayer://' + url,
-  };
-  window.location.href = schemes[app] || schemes.vlc;
-}
-function copyStreamUrl(){
-  if(!curCh) return;
-  navigator.clipboard?.writeText(curCh.url)
-    .then(()=>toast2('📋 URL kopyalandı'))
-    .catch(()=>prompt('Stream URL:', curCh.url));
-}
-function showExtPrompt(){
-  const el=$('ext-prompt'); if(el) el.style.display='flex';
-}
-function hideExtPrompt(){
-  const el=$('ext-prompt'); if(el) el.style.display='none';
-}
-function retryPlay(){
-  hideExtPrompt();
-  if(curCh) playCh(curCh.uid);
-}
+
 
 /* ═══════════════════════ URL CANDIDATES ═══════════════════════ */
 let _pv = 0;
@@ -1362,8 +1296,8 @@ function playCh(uid){
   $('mpgrp').textContent  = ch.group;
   $('mplayer').classList.add('open');
   $('pdot').classList.add('v');
-  $('ext-btn').style.display = 'flex';
-  hideExtPrompt();
+  
+  
   showBuf(true);
 
   const cands  = urlCandidates(ch.url);
@@ -1387,8 +1321,7 @@ function playCh(uid){
     v.pause(); v.src=''; v.load();
     if(attempt >= cands.length){
       showBuf(false);
-      showExtPrompt();
-      toast2('⚠️ Kanal açılamadı — dış oynatıcı dene', 4000);
+      toast2('⚠️ Kanal açılamıyor', 3000);
       return;
     }
     next();
@@ -1479,10 +1412,10 @@ function stopPlayer(){
   clearTimeout(v._toTimer); clearTimeout(v._bufTimer);
   destroyHls();
   v.pause(); v.src=''; v.load();
-  showBuf(false); hideExtPrompt();
+  showBuf(false); 
   $('mplayer').classList.remove('open');
   $('pdot').classList.remove('v');
-  $('ext-btn').style.display='none';
+  
   curCh=null; curIdx=-1; _pv++;
   document.querySelectorAll('.chi.now').forEach(el=>{
     el.classList.remove('now'); el.querySelector('.pbar')?.remove();
