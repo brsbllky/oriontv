@@ -72,11 +72,6 @@ html,body{height:100%;width:100%;overflow:hidden;
 #mplayer{flex-shrink:0;overflow:hidden;max-height:0;
   transition:max-height .3s cubic-bezier(.4,0,.2,1);}
 #mplayer.open{max-height:80vw;}
-/* PWA standalone fix */
-@media all and (display-mode:standalone){
-  #mplayer.open{max-height:56vw;}
-  #app{height:100svh;}
-}
 .mpi{padding:0;}
 .mpwrap{border-radius:0;overflow:hidden;background:#000;position:relative;}
 #vid{width:100%;display:block;aspect-ratio:16/9;max-height:56vw;
@@ -394,13 +389,16 @@ html,body{height:100%;width:100%;overflow:hidden;
         <video id="vid" playsinline webkit-playsinline
                x-webkit-airplay="allow"
                preload="none"
-               controls
-               style="width:100%;display:block;aspect-ratio:16/9;max-height:56vw;object-fit:contain;background:#000;"></video>
+               style="width:100%;display:block;aspect-ratio:16/9;max-height:56vw;object-fit:contain;background:#000;"
+               onclick="togglePlay()"></video>
         <div class="mpbar">
           <div class="mpinfo">
             <div class="mpname" id="mpname">—</div>
             <div class="mpgrp" id="mpgrp">—</div>
           </div>
+          <button class="mpc play" id="playbtn" onclick="togglePlay()">
+            <svg viewBox="0 0 24 24" id="play-icon"><polygon points="5,3 19,12 5,21"/></svg>
+          </button>
           <button class="mpc" onclick="skipCh(-1)" title="Önceki kanal">
             <svg viewBox="0 0 24 24"><polygon points="19,20 9,12 19,4"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
           </button>
@@ -1429,7 +1427,16 @@ function stopPlayer(){
 
 function togglePlay(){
   const v=$('vid');
-  v.paused ? v.play().catch(()=>{}) : v.pause();
+  if(v.paused){ v.play().catch(()=>{}); }
+  else { v.pause(); }
+}
+function updatePlayBtn(){
+  const v=$('vid'), ico=$('play-icon'); if(!ico) return;
+  if(v.paused){
+    ico.innerHTML='<polygon points="5,3 19,12 5,21"/>';
+  } else {
+    ico.innerHTML='<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
+  }
 }
 
 function skipCh(dir){
@@ -1442,7 +1449,12 @@ function skipCh(dir){
 }
 
 /* video time update */
-(()=>{ $('vid').addEventListener('timeupdate', updateSeek); })();
+(()=>{
+  const v=$('vid');
+  v.addEventListener('timeupdate', updateSeek);
+  v.addEventListener('play',  updatePlayBtn);
+  v.addEventListener('pause', updatePlayBtn);
+})();
 function updateSeek(){
   const v=$('vid');
   if(!v.duration||!isFinite(v.duration)){ $('mptime').textContent=''; return; }
@@ -1707,7 +1719,7 @@ function init(){
   renderLive();
   checkDebugBtn();
   if('serviceWorker' in navigator){
-    navigator.serviceWorker.register('./sw.js').then(reg => {
+    navigator.serviceWorker.register('./sw.js').then(reg=>{
       reg.update();
     }).catch(()=>{});
   }
