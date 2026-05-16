@@ -72,6 +72,11 @@ html,body{height:100%;width:100%;overflow:hidden;
 #mplayer{flex-shrink:0;overflow:hidden;max-height:0;
   transition:max-height .3s cubic-bezier(.4,0,.2,1);}
 #mplayer.open{max-height:80vw;}
+/* PWA standalone fix */
+@media all and (display-mode:standalone){
+  #mplayer.open{max-height:56vw;}
+  #app{height:100svh;}
+}
 .mpi{padding:0;}
 .mpwrap{border-radius:0;overflow:hidden;background:#000;position:relative;}
 #vid{width:100%;display:block;aspect-ratio:16/9;max-height:56vw;
@@ -1702,7 +1707,9 @@ function init(){
   renderLive();
   checkDebugBtn();
   if('serviceWorker' in navigator){
-    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+      reg.update();
+    }).catch(()=>{});
   }
 }
 init();
