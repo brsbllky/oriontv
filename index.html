@@ -351,6 +351,7 @@ html,body{height:100%;width:100%;overflow:hidden;
   max-width:88vw;text-align:center;}
 #toast.on{opacity:1;transform:translateX(-50%) translateY(0) scale(1);}
 
+/* ─── EXTERNAL PLAYER BUTTON ─── */
 
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.13/hls.min.js" crossorigin="anonymous"></script>
@@ -410,7 +411,8 @@ html,body{height:100%;width:100%;overflow:hidden;
             <div class="mpprog" id="mpprog"></div>
           </div>
         </div>
-        <div class="mptime" id="mptime" style="display:none"></div></div>
+        <div class="mptime" id="mptime" style="display:none"></div>
+
       </div>
     </div>
   </div>
@@ -1211,6 +1213,7 @@ function playWithHlsJs(streamUrl, ver, onSuccess, onFail){
 }
 
 /* ═══════════════════════ EXTERNAL PLAYERS ═══════════════════════ */
+
 
 /* ═══════════════════════ URL CANDIDATES ═══════════════════════ */
 let _pv = 0;
